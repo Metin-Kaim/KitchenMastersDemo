@@ -1,4 +1,5 @@
 ﻿using Assets.Game.Scripts.Abstracts;
+using DG.Tweening;
 using UnityEngine;
 
 namespace Assets.Game.Scripts.Handlers
@@ -12,9 +13,7 @@ namespace Assets.Game.Scripts.Handlers
             _currentCell = newCell;
             newCell.CurrentItem = this;
             transform.SetParent(newCell.transform);
-            transform.localPosition = Vector3.zero;
-
-            print("555");
+            transform.DOLocalMove(Vector2.zero, 0.2f).SetEase(Ease.InOutFlash).OnComplete(() => newCell.IsBlocked = false);
         }
     }
 }

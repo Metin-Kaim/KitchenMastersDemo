@@ -333,7 +333,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   selectedCell: {fileID: 0}
-  dragThreshold: 0.5
+  dragThreshold: 0.3
   isDragged: 0
   dragDirection: {x: 0, y: 0}
   mouseTouchedPosition: {x: 0, y: 0, z: 0}
