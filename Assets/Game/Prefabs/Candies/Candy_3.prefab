@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7986257319702238107}
   - component: {fileID: 3789178360495939978}
+  - component: {fileID: -7645034203421334552}
   m_Layer: 0
   m_Name: Candy_3
   m_TagString: Untagged
@@ -87,3 +88,15 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
+--- !u!114 &-7645034203421334552
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8312762504573550869}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f66b9078710fd36449d2826ede4cc215, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
