@@ -367,6 +367,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   gridCellPrefab: {fileID: 2356046187553875565, guid: 015dba9e56b2b6a49b6fea71e9c4849a, type: 3}
   gridCellsContainer: {fileID: 497127859}
+  candies:
+  - {fileID: 5961890184652418842, guid: bcb9fdb434c5ebb4aa1ffa478a7ea785, type: 3}
+  - {fileID: 6714206039881430415, guid: 96e69be64c255d84fae610d459ebe759, type: 3}
+  - {fileID: 8312762504573550869, guid: 39518b7c2c0307042ae873453371a1b6, type: 3}
+  - {fileID: 6072672919548234767, guid: 918259df2abe0c34b8c723bab323f957, type: 3}
   gridWidth: 4
   gridHeight: 4
 --- !u!1 &1832891719
