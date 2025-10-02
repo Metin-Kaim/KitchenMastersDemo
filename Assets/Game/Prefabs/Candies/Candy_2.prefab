@@ -100,3 +100,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f66b9078710fd36449d2826ede4cc215, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _itemType: 1
+  _currentCell: {fileID: 0}

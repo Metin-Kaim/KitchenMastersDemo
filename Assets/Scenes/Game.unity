@@ -206,7 +206,7 @@ Transform:
   m_GameObject: {fileID: 479926691}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 1.4, y: 2.6, z: -10}
+  m_LocalPosition: {x: 2.51, y: 2.79, z: -10}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -281,9 +281,9 @@ Transform:
   m_GameObject: {fileID: 497127858}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.100000024, y: -1.1, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_LocalPosition: {x: 0.23, y: -1.85, z: 0}
+  m_LocalScale: {x: 0.8, y: 0.8, z: 0.8}
+  m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 1832891721}
   m_Father: {fileID: 1210310033}
@@ -332,8 +332,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a76fd892f08bdb94bb3a8110b6a2ca88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  selectedCell: {fileID: 0}
   dragThreshold: 0.3
+  selectedCell: {fileID: 0}
   isDragged: 0
   dragDirection: {x: 0, y: 0}
   mouseTouchedPosition: {x: 0, y: 0, z: 0}
@@ -439,9 +439,9 @@ Transform:
   m_GameObject: {fileID: 1210310032}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0.12, y: -0.93, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 497127859}
   m_Father: {fileID: 590435223}
@@ -465,7 +465,7 @@ MonoBehaviour:
   - {fileID: 6714206039881430415, guid: 96e69be64c255d84fae610d459ebe759, type: 3}
   - {fileID: 8312762504573550869, guid: 39518b7c2c0307042ae873453371a1b6, type: 3}
   - {fileID: 6072672919548234767, guid: 918259df2abe0c34b8c723bab323f957, type: 3}
-  gridSize: {x: 4, y: 4}
+  gridSize: {x: 6, y: 6}
 --- !u!1 &1832891719
 GameObject:
   m_ObjectHideFlags: 0
@@ -482,7 +482,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!212 &1832891720
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -532,7 +532,7 @@ SpriteRenderer:
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 2
-  m_Size: {x: 4.1, y: 4.1}
+  m_Size: {x: 6.0419917, y: 5.287665}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
@@ -547,7 +547,7 @@ Transform:
   m_GameObject: {fileID: 1832891719}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0.971, y: 0.5938, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

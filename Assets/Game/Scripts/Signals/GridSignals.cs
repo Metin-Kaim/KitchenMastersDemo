@@ -1,6 +1,7 @@
 ﻿using Assets.Game.Scripts.Handlers;
 using System;
 using UnityEngine;
+using UnityEngine.Events;
 
 namespace Assets.Game.Scripts.Signals
 {
@@ -10,6 +11,8 @@ namespace Assets.Game.Scripts.Signals
 
         public Func<GridCellHandler[,]> onGetGridCells;
         public Func<Vector2Int> onGetGridSize;
+        public UnityAction onCheckTheGridToMatch;
+        public UnityAction<GridCellHandler> onCheckMatchesFromCell;
 
         private void Awake()
         {

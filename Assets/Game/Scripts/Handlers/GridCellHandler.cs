@@ -13,6 +13,7 @@ namespace Assets.Game.Scripts.Handlers
         public IItem CurrentItem { get => currentItem; set => currentItem = value; }
         public Vector2Int GridPosition { get => gridPosition; set => gridPosition = value; }
         public bool IsBlocked { get => isBlocked; set => isBlocked = value; }
+        public bool IsChecked { get; internal set; }
 
         public void SwapItemWithNeighbourCell(Vector2Int direction)
         {

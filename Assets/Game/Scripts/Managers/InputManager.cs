@@ -1,17 +1,18 @@
 ﻿using Assets.Game.Scripts.Handlers;
 using System.Collections;
 using UnityEngine;
+using EditorAttributes;
 
 namespace Assets.Game.Scripts.Managers
 {
     public class InputManager : MonoBehaviour
     {
-        [SerializeField] private GridCellHandler selectedCell;
         [SerializeField] private float dragThreshold = 0.1f;
 
-        [SerializeField] private bool isDragged;
-        [SerializeField] private Vector2Int dragDirection;
-        [SerializeField] private Vector3 mouseTouchedPosition;
+        [SerializeField, ReadOnly] private GridCellHandler selectedCell;
+        [SerializeField, ReadOnly] private bool isDragged;
+        [SerializeField, ReadOnly] private Vector2Int dragDirection;
+        [SerializeField, ReadOnly] private Vector3 mouseTouchedPosition;
 
         private void Update()
         {
@@ -25,7 +26,7 @@ namespace Assets.Game.Scripts.Managers
                 {
                     if (hit.collider.TryGetComponent(out GridCellHandler cell))
                     {
-                        if(cell.IsBlocked) return;
+                        if (cell.IsBlocked) return;
 
                         mouseTouchedPosition = mousePos;
                         selectedCell = cell;
