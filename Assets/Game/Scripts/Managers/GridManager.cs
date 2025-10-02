@@ -1,7 +1,7 @@
 ﻿using Assets.Game.Scripts.Abstracts;
 using Assets.Game.Scripts.Handlers;
 using Assets.Game.Scripts.Signals;
-using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -10,6 +10,8 @@ namespace Assets.Game.Scripts.Managers
 {
     public class GridManager : MonoBehaviour
     {
+        #region Fields & Inspector
+
         [Header("Prefabs and Containers")]
         [SerializeField] private GridCellHandler gridCellPrefab;
         [SerializeField] private Transform gridCellsContainer;
@@ -20,11 +22,16 @@ namespace Assets.Game.Scripts.Managers
 
         private GridCellHandler[,] _gridCells;
 
+        #endregion
+
+        #region Unity Lifecycle
+
         private void OnEnable()
         {
             GridSignals.Instance.onGetGridCells += GetGridCells;
             GridSignals.Instance.onGetGridSize += GetGridSize;
             GridSignals.Instance.onCheckMatchesFromCell += CheckMatchesFromCell;
+            GridSignals.Instance.onSpawnNewItems += OnSpawnNewItems;
         }
 
         private void OnDisable()
@@ -32,15 +39,27 @@ namespace Assets.Game.Scripts.Managers
             GridSignals.Instance.onGetGridCells -= GetGridCells;
             GridSignals.Instance.onGetGridSize -= GetGridSize;
             GridSignals.Instance.onCheckMatchesFromCell -= CheckMatchesFromCell;
+            GridSignals.Instance.onSpawnNewItems -= OnSpawnNewItems;
         }
 
-        private void Start()
+        private void Start() => GenerateGrid();
+
+        private void Update()
         {
-            GenerateGrid();
+            if (Input.GetKeyDown(KeyCode.Space))
+                Debug.Break();
         }
+
+        #endregion
+
+        #region Grid Accessors
 
         private GridCellHandler[,] GetGridCells() => _gridCells;
         private Vector2Int GetGridSize() => gridSize;
+
+        #endregion
+
+        #region Grid Generation
 
         private void GenerateGrid()
         {
@@ -64,81 +83,85 @@ namespace Assets.Game.Scripts.Managers
         private void PopulateGridWithCandies()
         {
             System.Random random = new();
+
             for (int x = 0; x < gridSize.x; x++)
             {
                 for (int y = 0; y < gridSize.y; y++)
                 {
                     int randomIndex = random.Next(candies.Length);
-                    GameObject candy = Instantiate(candies[randomIndex]);
-                    candy.transform.SetParent(_gridCells[x, y].transform);
+                    GameObject candy = Instantiate(candies[randomIndex], _gridCells[x, y].transform);
                     candy.transform.localPosition = Vector3.zero;
                     candy.name += $"_({x},{y})";
-
                     _gridCells[x, y].CurrentItem = candy.GetComponent<IItem>();
                 }
             }
         }
 
-        // ----------------- MATCH CHECKING -----------------
+        #endregion
+
+        #region Spawn New Items
+
+        public void OnSpawnNewItems(GridCellHandler emptyCell)
+        {
+            int column = emptyCell.GridPosition.x;
+            int startY = emptyCell.GridPosition.y;
+
+            for (int y = startY; y < gridSize.y; y++)
+            {
+                var cell = _gridCells[column, y];
+                if (cell.CurrentItem != null) continue;
+
+                int randomIndex = Random.Range(0, candies.Length);
+                GameObject candy = Instantiate(candies[randomIndex], cell.transform);
+                candy.transform.localPosition = Vector3.up * (gridSize.y - y + 1); // yukarıdan düşecek
+                candy.name += $"_({cell.GridPosition.x},{cell.GridPosition.y})";
+
+                cell.CurrentItem = candy.GetComponent<IItem>();
+                if (candy.TryGetComponent(out IMovable movable))
+                    movable.FallToTheCell(cell);
+            }
+        }
+
+        #endregion
+
+        #region Match Checking
+
         public void CheckMatchesFromCell(GridCellHandler selectedCell)
         {
-            if (selectedCell == null || selectedCell.CurrentItem == null)
-                return;
+            if (selectedCell?.CurrentItem == null) return;
 
             List<GridCellHandler> neighbors = GetNeighborsOfSameType(selectedCell);
 
-            if (neighbors.Count >= 4 && CheckFive(selectedCell, neighbors))
-                return;
-
-            if (neighbors.Count >= 3 && CheckFour(selectedCell, neighbors))
-                return;
-
-            if (neighbors.Count >= 2 && CheckThree(selectedCell, neighbors))
-                return;
+            if (neighbors.Count >= 4 && CheckFive(selectedCell, neighbors)) return;
+            if (neighbors.Count >= 3 && CheckFour(selectedCell, neighbors)) return;
+            if (neighbors.Count >= 2 && CheckThree(selectedCell, neighbors)) return;
         }
 
-        private bool CheckThree(GridCellHandler selectedCell, List<GridCellHandler> neighbors)
+        private bool CheckThree(GridCellHandler cell, List<GridCellHandler> neighbors) =>
+            CheckLineMatch(cell, neighbors, 3);
+
+        private bool CheckFour(GridCellHandler cell, List<GridCellHandler> neighbors) =>
+            CheckSquareMatch(cell, neighbors) || CheckLineMatch(cell, neighbors, 4);
+
+        private bool CheckFive(GridCellHandler cell, List<GridCellHandler> neighbors) =>
+            CheckLineMatch(cell, neighbors, 5) ||
+            CheckTShapeMatch(cell, neighbors) ||
+            CheckLShapeMatch(cell, neighbors);
+
+        #endregion
+
+        #region Match Helpers
+
+        private bool CheckLineMatch(GridCellHandler cell, List<GridCellHandler> neighbors, int length)
         {
-            return CheckLineMatch(selectedCell, neighbors, 3);
-        }
-
-        private bool CheckFour(GridCellHandler selectedCell, List<GridCellHandler> neighbors)
-        {
-            // Önce kare kontrolü
-            if (CheckSquareMatch(selectedCell, neighbors))
-                return true;
-
-            // Sonra 4’lü düz çizgi
-            return CheckLineMatch(selectedCell, neighbors, 4);
-        }
-
-        private bool CheckFive(GridCellHandler selectedCell, List<GridCellHandler> neighbors)
-        {
-            // Önce 5’li düz çizgi
-            if (CheckLineMatch(selectedCell, neighbors, 5))
-                return true;
-
-            // Sonra T ve L şekilleri
-            return CheckTShapeMatch(selectedCell, neighbors) || CheckLShapeMatch(selectedCell, neighbors);
-        }
-
-        #region 🔹 Shared Helpers
-
-        private bool CheckLineMatch(GridCellHandler selectedCell, List<GridCellHandler> neighbors, int length)
-        {
-            int x = selectedCell.GridPosition.x;
-            int y = selectedCell.GridPosition.y;
-
-            // --- Horizontal ---
-            List<GridCellHandler> horiz = CollectLine(selectedCell, neighbors, Vector2Int.right, Vector2Int.left);
+            List<GridCellHandler> horiz = CollectLine(cell, neighbors, Vector2Int.right, Vector2Int.left);
             if (horiz.Count >= length)
             {
                 DestroyMatches(horiz);
                 return true;
             }
 
-            // --- Vertical ---
-            List<GridCellHandler> vert = CollectLine(selectedCell, neighbors, Vector2Int.up, Vector2Int.down);
+            List<GridCellHandler> vert = CollectLine(cell, neighbors, Vector2Int.up, Vector2Int.down);
             if (vert.Count >= length)
             {
                 DestroyMatches(vert);
@@ -150,155 +173,86 @@ namespace Assets.Game.Scripts.Managers
 
         private List<GridCellHandler> CollectLine(GridCellHandler start, List<GridCellHandler> neighbors, Vector2Int dir1, Vector2Int dir2)
         {
-            int x = start.GridPosition.x;
-            int y = start.GridPosition.y;
-
             List<GridCellHandler> result = new() { start };
-
-            // bir yönde
-            for (int i = 1; ; i++)
-            {
-                var next = neighbors.FirstOrDefault(c => c.GridPosition == new Vector2Int(x + dir1.x * i, y + dir1.y * i));
-                if (next != null) result.Add(next); else break;
-            }
-            // ters yönde
-            for (int i = 1; ; i++)
-            {
-                var next = neighbors.FirstOrDefault(c => c.GridPosition == new Vector2Int(x + dir2.x * i, y + dir2.y * i));
-                if (next != null) result.Add(next); else break;
-            }
-
+            AddDirection(neighbors, result, start.GridPosition, dir1);
+            AddDirection(neighbors, result, start.GridPosition, dir2);
             return result;
         }
 
-        private bool CheckSquareMatch(GridCellHandler selectedCell, List<GridCellHandler> neighbors)
+        private void AddDirection(List<GridCellHandler> neighbors, List<GridCellHandler> result, Vector2Int startPos, Vector2Int dir)
         {
-            int x = selectedCell.GridPosition.x;
-            int y = selectedCell.GridPosition.y;
-
-            Vector2Int[][] squareOffsets =
+            for (int i = 1; ; i++)
             {
-        new [] { new Vector2Int(1,0), new Vector2Int(0,1), new Vector2Int(1,1) },   // sağ-üst
-        new [] { new Vector2Int(-1,0), new Vector2Int(0,1), new Vector2Int(-1,1) }, // sol-üst
-        new [] { new Vector2Int(1,0), new Vector2Int(0,-1), new Vector2Int(1,-1) }, // sağ-alt
-        new [] { new Vector2Int(-1,0), new Vector2Int(0,-1), new Vector2Int(-1,-1)} // sol-alt
-    };
+                var next = neighbors.FirstOrDefault(c => c.GridPosition == startPos + dir * i);
+                if (next != null) result.Add(next); else break;
+            }
+        }
 
-            foreach (var offsets in squareOffsets)
+        private bool CheckSquareMatch(GridCellHandler cell, List<GridCellHandler> neighbors)
+        {
+            int x = cell.GridPosition.x, y = cell.GridPosition.y;
+            Vector2Int[][] offsets = {
+                new [] { new Vector2Int(1,0), new Vector2Int(0,1), new Vector2Int(1,1) },
+                new [] { new Vector2Int(-1,0), new Vector2Int(0,1), new Vector2Int(-1,1) },
+                new [] { new Vector2Int(1,0), new Vector2Int(0,-1), new Vector2Int(1,-1) },
+                new [] { new Vector2Int(-1,0), new Vector2Int(0,-1), new Vector2Int(-1,-1)}
+            };
+
+            foreach (var offSet in offsets)
             {
-                List<GridCellHandler> square = new() { selectedCell };
-                bool valid = true;
-
-                foreach (var off in offsets)
+                List<GridCellHandler> square = new() { cell };
+                if (offSet.All(off => neighbors.Any(n => n.GridPosition == new Vector2Int(x + off.x, y + off.y))))
                 {
-                    var cell = neighbors.FirstOrDefault(c => c.GridPosition == new Vector2Int(x + off.x, y + off.y));
-                    if (cell != null) square.Add(cell);
-                    else { valid = false; break; }
-                }
-
-                if (valid)
-                {
+                    square.AddRange(offSet.Select(off => neighbors.First(n => n.GridPosition == new Vector2Int(x + off.x, y + off.y))));
                     DestroyMatches(square);
                     return true;
                 }
             }
-            return false;
-        }
-
-        private bool CheckTShapeMatch(GridCellHandler selectedCell, List<GridCellHandler> neighbors)
-        {
-            int x = selectedCell.GridPosition.x;
-            int y = selectedCell.GridPosition.y;
-
-            // Yukarı T
-            if (Has(neighbors, x, y - 1, x, y - 2) && Has(neighbors, x - 1, y, x + 1, y))
-                return DestroyAndReturn(selectedCell, neighbors, new (int, int)[] { (0, -1), (0, -2), (-1, 0), (1, 0) });
-
-            // Aşağı T
-            if (Has(neighbors, x, y + 1, x, y + 2) && Has(neighbors, x - 1, y, x + 1, y))
-                return DestroyAndReturn(selectedCell, neighbors, new (int, int)[] { (0, 1), (0, 2), (-1, 0), (1, 0) });
-
-            // Sol T
-            if (Has(neighbors, x - 1, y, x - 2, y) && Has(neighbors, x, y - 1, x, y + 1))
-                return DestroyAndReturn(selectedCell, neighbors, new (int, int)[] { (-1, 0), (-2, 0), (0, -1), (0, 1) });
-
-            // Sağ T
-            if (Has(neighbors, x + 1, y, x + 2, y) && Has(neighbors, x, y - 1, x, y + 1))
-                return DestroyAndReturn(selectedCell, neighbors, new (int, int)[] { (1, 0), (2, 0), (0, -1), (0, 1) });
 
             return false;
         }
 
-        private bool CheckLShapeMatch(GridCellHandler selectedCell, List<GridCellHandler> neighbors)
+        private bool CheckTShapeMatch(GridCellHandler cell, List<GridCellHandler> neighbors) =>
+            CheckShape(cell, neighbors,
+                new[] { (0, -1), (0, -2), (-1, 0), (1, 0) },
+                new[] { (0, 1), (0, 2), (-1, 0), (1, 0) },
+                new[] { (-1, 0), (-2, 0), (0, -1), (0, 1) },
+                new[] { (1, 0), (2, 0), (0, -1), (0, 1) });
+
+        private bool CheckLShapeMatch(GridCellHandler cell, List<GridCellHandler> neighbors) =>
+            CheckShape(cell, neighbors,
+                new[] { (-1, 0), (-2, 0), (0, 1), (0, 2) },
+                new[] { (-1, 0), (-2, 0), (0, -1), (0, -2) },
+                new[] { (1, 0), (2, 0), (0, 1), (0, 2) },
+                new[] { (1, 0), (2, 0), (0, -1), (0, -2) });
+
+        private bool CheckShape(GridCellHandler cell, List<GridCellHandler> neighbors, params (int dx, int dy)[][] shapes)
         {
-            int x = selectedCell.GridPosition.x;
-            int y = selectedCell.GridPosition.y;
+            int x = cell.GridPosition.x, y = cell.GridPosition.y;
 
-            // Sol + Yukarı
-            if (Has(neighbors, x - 1, y, x - 2, y, x, y + 1, x, y + 2))
-                return DestroyAndReturn(selectedCell, neighbors, new (int, int)[] { (-1, 0), (-2, 0), (0, 1), (0, 2) });
-
-            // Sol + Aşağı
-            if (Has(neighbors, x - 1, y, x - 2, y, x, y - 1, x, y - 2))
-                return DestroyAndReturn(selectedCell, neighbors, new (int, int)[] { (-1, 0), (-2, 0), (0, -1), (0, -2) });
-
-            // Sağ + Yukarı
-            if (Has(neighbors, x + 1, y, x + 2, y, x, y + 1, x, y + 2))
-                return DestroyAndReturn(selectedCell, neighbors, new (int, int)[] { (1, 0), (2, 0), (0, 1), (0, 2) });
-
-            // Sağ + Aşağı
-            if (Has(neighbors, x + 1, y, x + 2, y, x, y - 1, x, y - 2))
-                return DestroyAndReturn(selectedCell, neighbors, new (int, int)[] { (1, 0), (2, 0), (0, -1), (0, -2) });
-
-            return false;
-        }
-
-        private bool Has(List<GridCellHandler> neighbors, params int[] coords)
-        {
-            for (int i = 0; i < coords.Length; i += 2)
-                if (!neighbors.Exists(c => c.GridPosition == new Vector2Int(coords[i], coords[i + 1])))
-                    return false;
-            return true;
-        }
-
-        private bool DestroyAndReturn(GridCellHandler start, List<GridCellHandler> neighbors, (int dx, int dy)[] offsets)
-        {
-            List<GridCellHandler> cells = new() { start };
-            int x = start.GridPosition.x;
-            int y = start.GridPosition.y;
-
-            foreach (var (dx, dy) in offsets)
-                cells.Add(neighbors.Find(c => c.GridPosition == new Vector2Int(x + dx, y + dy)));
-
-            DestroyMatches(cells);
-            return true;
-        }
-
-        private void DestroyMatches(List<GridCellHandler> matchedCells)
-        {
-            if (matchedCells == null || matchedCells.Count == 0)
-                return;
-
-            foreach (var cell in matchedCells)
+            foreach (var offsets in shapes)
             {
-                if (cell == null || cell.CurrentItem == null)
-                    continue;
-
-                if (cell.CurrentItem is MonoBehaviour mb)
+                if (offsets.All(o => neighbors.Any(n => n.GridPosition == new Vector2Int(x + o.dx, y + o.dy))))
                 {
-                    Destroy(mb.gameObject);
+                    List<GridCellHandler> matched = new() { cell };
+                    matched.AddRange(offsets.Select(o => neighbors.First(n => n.GridPosition == new Vector2Int(x + o.dx, y + o.dy))));
+                    DestroyMatches(matched);
+                    return true;
                 }
-
-                cell.CurrentItem = null;
             }
+
+            return false;
         }
+
+        #endregion
+
+        #region Neighbors
 
         private List<GridCellHandler> GetNeighborsOfSameType(GridCellHandler startCell)
         {
             List<GridCellHandler> connectedCells = new();
 
-            if (startCell == null || startCell.CurrentItem == null)
-                return connectedCells;
+            if (startCell?.CurrentItem == null) return connectedCells;
 
             ItemTypes targetType = startCell.CurrentItem.ItemType;
             Queue<GridCellHandler> queue = new();
@@ -307,26 +261,17 @@ namespace Assets.Game.Scripts.Managers
             while (queue.Count > 0)
             {
                 GridCellHandler cell = queue.Dequeue();
-
-                if (cell.IsChecked || cell.CurrentItem == null)
-                    continue;
-
-                if (cell.CurrentItem.ItemType != targetType)
-                    continue;
+                if (cell.IsChecked || cell.CurrentItem?.ItemType != targetType) continue;
 
                 cell.IsChecked = true;
                 connectedCells.Add(cell);
 
-                int x = cell.GridPosition.x;
-                int y = cell.GridPosition.y;
+                int[,] dirs = { { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 } };
 
-                // Komşuluk (4 yönlü)
-                int[,] directions = { { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 } };
-
-                for (int i = 0; i < directions.GetLength(0); i++)
+                for (int i = 0; i < dirs.GetLength(0); i++)
                 {
-                    int nx = x + directions[i, 0];
-                    int ny = y + directions[i, 1];
+                    int nx = cell.GridPosition.x + dirs[i, 0];
+                    int ny = cell.GridPosition.y + dirs[i, 1];
 
                     if (nx >= 0 && nx < gridSize.x && ny >= 0 && ny < gridSize.y)
                     {
@@ -340,11 +285,7 @@ namespace Assets.Game.Scripts.Managers
                 }
             }
 
-            // Tüm hücrelerdeki IsChecked'i resetle
-            foreach (var cell in connectedCells)
-                cell.IsChecked = false;
-
-            // Başlangıç hücresini çıkartıyoruz çünkü neighbors sadece komşuları temsil etmeli
+            foreach (var cell in connectedCells) cell.IsChecked = false;
             connectedCells.Remove(startCell);
 
             return connectedCells;
@@ -352,5 +293,85 @@ namespace Assets.Game.Scripts.Managers
 
         #endregion
 
+        #region Destroy & Collapse
+
+        // DestroyMatches
+        private void DestroyMatches(List<GridCellHandler> matchedCells)
+        {
+            if (matchedCells == null || matchedCells.Count == 0)
+                return;
+
+            var affectedColumns = new HashSet<int>();
+
+            foreach (var cell in matchedCells)
+            {
+                if (cell == null || cell.CurrentItem == null) continue;
+
+                if (cell.CurrentItem is MonoBehaviour mb)
+                    Destroy(mb.gameObject);
+
+                cell.CurrentItem = null;
+                affectedColumns.Add(cell.GridPosition.x);
+            }
+
+            // Her sütun için coroutine başlat
+            foreach (var col in affectedColumns)
+                StartCoroutine(CollapseColumnCoroutine(col));
+        }
+
+        // CollapseColumnCoroutine
+        private IEnumerator CollapseColumnCoroutine(int columnIndex)
+        {
+            int height = gridSize.y;
+
+            for (int y = 0; y < height; y++)
+            {
+                var cell = _gridCells[columnIndex, y];
+
+                if (cell.CurrentItem == null)
+                {
+                    // en yakın yukarıdaki dolu hücreyi bul
+                    int sourceY = -1;
+                    for (int yy = y + 1; yy < height; yy++)
+                    {
+                        if (_gridCells[columnIndex, yy].CurrentItem != null)
+                        {
+                            sourceY = yy;
+                            break;
+                        }
+                    }
+
+                    if (sourceY != -1)
+                    {
+                        var sourceCell = _gridCells[columnIndex, sourceY];
+                        var item = sourceCell.CurrentItem;
+                        sourceCell.CurrentItem = null;   // kaynak hücre boşalt
+                        cell.CurrentItem = item;         // hedef hücreyi DOLU işaretle
+
+                        if (item is IMovable movable)
+                            movable.FallToTheCell(cell); // sadece animasyonu başlat
+                    }
+                    else
+                    {
+                        // üstte hiç yok → yeni item spawn et
+                        OnSpawnNewItems(cell);
+                    }
+
+                    yield return new WaitForSeconds(0.05f); // görsel akış için küçük gecikme
+                }
+            }
+
+            // Küçük bekle, sonra sütundaki her hücrede match kontrolü yap
+            yield return new WaitForSeconds(0.1f);
+
+            for (int y = 0; y < height; y++)
+            {
+                var c = _gridCells[columnIndex, y];
+                if (c.CurrentItem != null)
+                    GridSignals.Instance.onCheckMatchesFromCell?.Invoke(c);
+            }
+        }
+
+        #endregion
     }
 }

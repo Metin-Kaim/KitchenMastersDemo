@@ -13,6 +13,7 @@ namespace Assets.Game.Scripts.Signals
         public Func<Vector2Int> onGetGridSize;
         public UnityAction onCheckTheGridToMatch;
         public UnityAction<GridCellHandler> onCheckMatchesFromCell;
+        internal UnityAction<GridCellHandler> onSpawnNewItems;
 
         private void Awake()
         {
