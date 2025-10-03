@@ -9,12 +9,12 @@ public class GridCellHandler : MonoBehaviour
 {
     [SerializeField] private IItem currentItem;
     [SerializeField] private Vector2Int gridPosition;
-    [SerializeField] private bool isBlocked;
+    [SerializeField] private bool isCheckable;
     [SerializeField] private bool isLocked;
 
     public IItem CurrentItem { get => currentItem; set => currentItem = value; }
     public Vector2Int GridPosition { get => gridPosition; set => gridPosition = value; }
-    public bool IsBlocked { get => isBlocked; set => isBlocked = value; }
+    public bool IsCheckable { get => isCheckable; set => isCheckable = value; }
     public bool IsChecked { get; internal set; }
     public bool IsLocked { get => isLocked; set => isLocked = value; }
 
@@ -55,12 +55,20 @@ public class GridCellHandler : MonoBehaviour
                 neighbourPos.y >= 0 && neighbourPos.y < gridCells.GetLength(1))
             {
                 GridCellHandler neighbourCell = gridCells[neighbourPos.x, neighbourPos.y];
-                if (neighbourCell.currentItem != null && neighbourCell.isBlocked)
+                if (neighbourCell.currentItem != null && !neighbourCell.isCheckable)
                 {
-                    if ((neighbourCell.currentItem as AbsBlock).CheckForImpact())
+                    if ((neighbourCell.currentItem is AbsBlock block) && block.CheckForImpact())
                     {
                         blockingCells.Add(neighbourCell);
                     }
+                    //else if(neighbourCell.currentItem is AbsSpecial special)
+                    //{
+                    //    List<GridCellHandler> impactedCells = special.CheckForImpact();
+                    //    if (impactedCells != null)
+                    //    {
+                    //        blockingCells.AddRange(impactedCells);
+                    //    }
+                    //}
                 }
             }
         }

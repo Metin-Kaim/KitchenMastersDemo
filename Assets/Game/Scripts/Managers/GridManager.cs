@@ -18,6 +18,7 @@ namespace Assets.Game.Scripts.Managers
         [SerializeField] private CandyHandler[] candies;
         [SerializeField] private AbsBlock[] blocks;
         [SerializeField] private AbsBlock[] hibritBlocks;
+        [SerializeField] private AbsSpecial[] specialItems;
 
         [Header("Grid Settings")]
         [SerializeField] private Vector2Int gridSize = new(8, 8);
@@ -34,6 +35,7 @@ namespace Assets.Game.Scripts.Managers
             GridSignals.Instance.onGetGridSize += GetGridSize;
             GridSignals.Instance.onCheckMatchesFromCell += CheckMatchesFromCell;
             GridSignals.Instance.onSpawnNewItems += OnSpawnNewItems;
+            GridSignals.Instance.onDestroyMatches += DestroyMatches;
         }
 
         private void OnDisable()
@@ -42,6 +44,7 @@ namespace Assets.Game.Scripts.Managers
             GridSignals.Instance.onGetGridSize -= GetGridSize;
             GridSignals.Instance.onCheckMatchesFromCell -= CheckMatchesFromCell;
             GridSignals.Instance.onSpawnNewItems -= OnSpawnNewItems;
+            GridSignals.Instance.onDestroyMatches -= DestroyMatches;
         }
 
         private void Start() => GenerateGrid();
@@ -90,7 +93,7 @@ namespace Assets.Game.Scripts.Managers
                         block.transform.localPosition = Vector3.zero;
                         block.name += $"_({x},{y})";
                         _gridCells[x, y].CurrentItem = block.GetComponent<IItem>();
-                        _gridCells[x, y].IsBlocked = true;
+                        _gridCells[x, y].IsCheckable = false;
                         (block as IItem).CurrentCell = _gridCells[x, y];
                     }
                 }
@@ -105,31 +108,40 @@ namespace Assets.Game.Scripts.Managers
                     block.transform.localPosition = Vector3.zero;
                     block.name += $"_({x},{y})";
                     _gridCells[x, y].CurrentItem = block.GetComponent<IItem>();
-                    _gridCells[x, y].IsBlocked = true;
+                    _gridCells[x, y].IsCheckable = false;
                     _gridCells[x, y].IsLocked = true;
                     (block as IItem).CurrentCell = _gridCells[x, y];
                 }
             }
+
+            int specialIndex = Random.Range(0, specialItems.Length);
+            var special = Instantiate(specialItems[specialIndex], _gridCells[4, 4].transform);
+            special.transform.localPosition = Vector3.zero;
+            special.name += $"_(4,4)";
+            _gridCells[4, 4].CurrentItem = special.GetComponent<IItem>();
+            _gridCells[4, 4].IsCheckable = false;
+            _gridCells[4, 4].IsLocked = false;
+            (special as IItem).CurrentCell = _gridCells[4, 4];
 
             PopulateGridWithCandies();
         }
 
         private void PopulateGridWithCandies()
         {
-            System.Random random = new();
-
             for (int x = 0; x < gridSize.x; x++)
             {
                 for (int y = 0; y < gridSize.y; y++)
                 {
                     if (_gridCells[x, y].CurrentItem != null) continue;
 
-                    int randomIndex = random.Next(candies.Length);
+                    int randomIndex = Random.Range(0, candies.Length);
                     var candy = Instantiate(candies[randomIndex], _gridCells[x, y].transform);
                     candy.transform.localPosition = Vector3.zero;
                     candy.name += $"_({x},{y})";
                     _gridCells[x, y].CurrentItem = candy.GetComponent<IItem>();
                     candy.CurrentCell = _gridCells[x, y];
+                    _gridCells[x, y].IsCheckable = true;
+                    _gridCells[x, y].IsLocked = false;
                 }
             }
         }
@@ -152,8 +164,11 @@ namespace Assets.Game.Scripts.Managers
                 var candy = Instantiate(candies[randomIndex], cell.transform);
                 candy.transform.localPosition = Vector3.up * (gridSize.y - y + 1); // yukarıdan düşecek
                 candy.name += $"_({cell.GridPosition.x},{cell.GridPosition.y})";
-
                 cell.CurrentItem = candy.GetComponent<IItem>();
+                candy.CurrentCell = cell;
+                cell.IsCheckable = true;
+                cell.IsLocked = false;
+
                 if (candy.TryGetComponent(out IMovable movable))
                     movable.FallToTheCell(cell);
             }
@@ -220,8 +235,13 @@ namespace Assets.Game.Scripts.Managers
         {
             for (int i = 1; ; i++)
             {
-                var next = neighbors.FirstOrDefault(c => c.GridPosition == startPos + dir * i);
-                if (next != null) result.Add(next); else break;
+                var nextCell = neighbors.FirstOrDefault(c => c.GridPosition == startPos + dir * i);
+                if (nextCell != null)
+                {
+                    if (!nextCell.IsLocked)
+                        result.Add(nextCell);
+                }
+                else break;
             }
         }
 
@@ -238,7 +258,7 @@ namespace Assets.Game.Scripts.Managers
             foreach (var offSet in offsets)
             {
                 List<GridCellHandler> square = new() { cell };
-                if (offSet.All(off => neighbors.Any(n => n.GridPosition == new Vector2Int(x + off.x, y + off.y))))
+                if (offSet.All(off => neighbors.Any(nCell => !nCell.IsLocked && nCell.GridPosition == new Vector2Int(x + off.x, y + off.y))))
                 {
                     square.AddRange(offSet.Select(off => neighbors.First(n => n.GridPosition == new Vector2Int(x + off.x, y + off.y))));
                     DestroyMatches(square);
@@ -269,7 +289,7 @@ namespace Assets.Game.Scripts.Managers
 
             foreach (var offsets in shapes)
             {
-                if (offsets.All(o => neighbors.Any(n => n.GridPosition == new Vector2Int(x + o.dx, y + o.dy))))
+                if (offsets.All(o => neighbors.Any(nCell => !nCell.IsLocked && nCell.GridPosition == new Vector2Int(x + o.dx, y + o.dy))))
                 {
                     List<GridCellHandler> matched = new() { cell };
                     matched.AddRange(offsets.Select(o => neighbors.First(n => n.GridPosition == new Vector2Int(x + o.dx, y + o.dy))));
@@ -333,17 +353,22 @@ namespace Assets.Game.Scripts.Managers
         #region Destroy & Collapse
 
         // DestroyMatches
-        private void DestroyMatches(List<GridCellHandler> matchedCells)
+        private void DestroyMatches(List<GridCellHandler> matchedCells, bool checkForBlocks = true)
         {
             if (matchedCells == null || matchedCells.Count == 0)
                 return;
-            List<GridCellHandler> blockingCells = new(matchedCells);
-            foreach (var cell in matchedCells)
-            {
-                blockingCells.AddRange(cell.CheckForBlocks(_gridCells));
-            }
 
-            matchedCells.AddRange(blockingCells);
+            if (checkForBlocks)
+            {
+                List<GridCellHandler> blockingCells = new(matchedCells);
+
+                foreach (var cell in matchedCells)
+                {
+                    blockingCells.AddRange(cell.CheckForBlocks(_gridCells));
+                }
+
+                matchedCells.AddRange(blockingCells);
+            }
 
             var affectedColumns = new HashSet<int>();
 
@@ -363,7 +388,6 @@ namespace Assets.Game.Scripts.Managers
                 StartCoroutine(CollapseColumnCoroutine(col));
         }
 
-        // CollapseColumnCoroutine
         private IEnumerator CollapseColumnCoroutine(int columnIndex)
         {
             int height = gridSize.y;
@@ -387,10 +411,13 @@ namespace Assets.Game.Scripts.Managers
 
                     if (sourceY != -1)
                     {
+                        if (_gridCells[columnIndex, sourceY].IsLocked) break;
+
                         var sourceCell = _gridCells[columnIndex, sourceY];
                         var item = sourceCell.CurrentItem;
                         sourceCell.CurrentItem = null;   // kaynak hücre boşalt
                         cell.CurrentItem = item;         // hedef hücreyi DOLU işaretle
+                        item.CurrentCell = cell;
 
                         if (item is IMovable movable)
                             movable.FallToTheCell(cell); // sadece animasyonu başlat
@@ -411,7 +438,7 @@ namespace Assets.Game.Scripts.Managers
             for (int y = 0; y < height; y++)
             {
                 var c = _gridCells[columnIndex, y];
-                if (c.CurrentItem != null && !c.IsBlocked)
+                if (c.CurrentItem != null && c.IsCheckable)
                     GridSignals.Instance.onCheckMatchesFromCell?.Invoke(c);
             }
         }

@@ -22,7 +22,7 @@ namespace Assets.Game.Scripts.Abstracts
 
             if (impactResistance <= 0)
             {
-                currentCell.IsBlocked = false;
+                currentCell.IsCheckable = true;
                 currentCell.IsLocked = false;
                 return true;
             }

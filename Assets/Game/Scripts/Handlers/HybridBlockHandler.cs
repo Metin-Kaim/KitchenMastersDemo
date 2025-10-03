@@ -7,8 +7,8 @@ namespace Assets.Game.Scripts.Handlers
 {
     public class HybridBlockHandler : AbsBlock, IMovable
     {
-        private bool _isFalling = false;
-        private GridCellHandler targetCell;
+        public GridCellHandler TargetCell { get; set; }
+        public bool IsFalling { get; set; }
 
         public void MoveToCell(GridCellHandler newCell)
         {
@@ -20,16 +20,16 @@ namespace Assets.Game.Scripts.Handlers
             transform.DOLocalMove(Vector2.zero, 0.2f)
                 .SetEase(Ease.InOutFlash).OnComplete(() =>
                 {
-                    newCell.IsBlocked = true;
+                    newCell.IsCheckable = false;
                     newCell.IsLocked = false;
-                });
+                }).SetLink(gameObject, LinkBehaviour.KillOnDestroy);
         }
 
         public void FallToTheCell(GridCellHandler targetCell)
         {
-            this.targetCell = targetCell;
-            if (_isFalling) return;
-            _isFalling = true;
+            TargetCell = targetCell;
+            if (IsFalling) return;
+            IsFalling = true;
             StartCoroutine(Fall(targetCell));
         }
 
@@ -44,9 +44,9 @@ namespace Assets.Game.Scripts.Handlers
             {
                 distance = Vector2.Distance(transform.localPosition, Vector2.zero);
 
-                if (this.targetCell != targetCell)
+                if (TargetCell != targetCell)
                 {
-                    targetCell = this.targetCell;
+                    targetCell = TargetCell;
                     transform.SetParent(targetCell.transform);
                 }
 
@@ -60,7 +60,7 @@ namespace Assets.Game.Scripts.Handlers
 
             transform.localPosition = Vector2.zero;
 
-            _isFalling = false;
+            IsFalling = false;
         }
     }
 }

@@ -13,20 +13,19 @@ namespace Assets.Game.Scripts.Handlers
         [SerializeField] private ItemTypes _itemType;
         [SerializeField] private GridCellHandler _currentCell;
 
-        private bool _isFalling = false;
-        private GridCellHandler targetCell;
-
         #endregion
 
         #region Properties
 
         public ItemTypes ItemType => _itemType;
-
         public GridCellHandler CurrentCell
         {
             get => _currentCell;
             set => _currentCell = value;
         }
+        public GridCellHandler TargetCell { get; set; }
+        public bool IsFalling { get; set; }
+
 
         #endregion
 
@@ -43,17 +42,17 @@ namespace Assets.Game.Scripts.Handlers
                 .SetEase(Ease.InOutFlash)
                 .OnComplete(() =>
                 {
-                    newCell.IsBlocked = false;
+                    newCell.IsCheckable = true;
                     newCell.IsLocked = false;
                     GridSignals.Instance.onCheckMatchesFromCell?.Invoke(newCell);
-                });
+                }).SetLink(gameObject, LinkBehaviour.KillOnDestroy);
         }
 
         public void FallToTheCell(GridCellHandler targetCell)
         {
-            this.targetCell = targetCell;
-            if (_isFalling) return;
-            _isFalling = true;
+            TargetCell = targetCell;
+            if (IsFalling) return;
+            IsFalling = true;
             StartCoroutine(Fall(targetCell));
         }
 
@@ -68,9 +67,9 @@ namespace Assets.Game.Scripts.Handlers
             {
                 distance = Vector2.Distance(transform.localPosition, Vector2.zero);
 
-                if (this.targetCell != targetCell)
+                if (TargetCell != targetCell)
                 {
-                    targetCell = this.targetCell;
+                    targetCell = TargetCell;
                     transform.SetParent(targetCell.transform);
                 }
 
@@ -85,7 +84,7 @@ namespace Assets.Game.Scripts.Handlers
             transform.localPosition = Vector2.zero;
 
             GridSignals.Instance.onCheckMatchesFromCell?.Invoke(targetCell);
-            _isFalling = false;
+            IsFalling = false;
         }
 
         #endregion

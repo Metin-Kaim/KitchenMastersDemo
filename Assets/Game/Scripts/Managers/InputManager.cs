@@ -2,6 +2,7 @@
 using System.Collections;
 using UnityEngine;
 using EditorAttributes;
+using Assets.Game.Scripts.Abstracts;
 
 namespace Assets.Game.Scripts.Managers
 {
@@ -75,6 +76,15 @@ namespace Assets.Game.Scripts.Managers
             }
             else if (Input.GetMouseButtonUp(0) && selectedCell)
             {
+                if (!isDragged)
+                {
+                    if(selectedCell.CurrentItem != null && selectedCell.CurrentItem is AbsSpecial special)
+                    {
+                        print("BOMB: " + special.CurrentCell.GridPosition);
+                        special.Interact();
+                    }
+                }
+
                 mouseTouchedPosition = Vector3.zero;
                 selectedCell = null;
                 isDragged = false;

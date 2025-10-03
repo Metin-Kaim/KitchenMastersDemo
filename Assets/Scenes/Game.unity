@@ -470,6 +470,8 @@ MonoBehaviour:
   - {fileID: 6133247020516429251, guid: a67d0b1bc2577414e81c74f27ce52bc0, type: 3}
   hibritBlocks:
   - {fileID: -5215292354704330172, guid: 5b0c0b464bbb6cd4aae2dec73fc14299, type: 3}
+  specialItems:
+  - {fileID: 7417661529698856349, guid: 83c413adcfc03504a8aabda8327f7e86, type: 3}
   gridSize: {x: 6, y: 6}
 --- !u!1 &1832891719
 GameObject:

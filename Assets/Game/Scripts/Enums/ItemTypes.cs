@@ -15,4 +15,8 @@
 
     //Hybrid: 100
     Hybrid_1 = 100,
+
+
+    //Special: 150
+    Bomb= 150,
 }
