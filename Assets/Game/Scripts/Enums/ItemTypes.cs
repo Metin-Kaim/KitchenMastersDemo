@@ -18,5 +18,6 @@
 
 
     //Special: 150
-    Bomb= 150,
+    Bomb = 150,
+    Rocket,
 }

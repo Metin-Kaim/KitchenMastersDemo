@@ -18,9 +18,9 @@ namespace Assets.Game.Scripts.Abstracts
         public ItemTypes ItemType => itemType;
         public GridCellHandler CurrentCell { get => currentCell; set => currentCell = value; }
 
-        private List<GridCellHandler> GetAllAroundCells()
+        public virtual List<GridCellHandler> GetAllAroundCells()
         {
-            HashSet<GridCellHandler> destroyingCells = new HashSet<GridCellHandler>();
+            HashSet<GridCellHandler> destroyingCells = new HashSet<GridCellHandler>() { currentCell };
 
             GridCellHandler[,] gridCells = GridSignals.Instance.onGetGridCells?.Invoke();
 
@@ -59,8 +59,6 @@ namespace Assets.Game.Scripts.Abstracts
                         destroyingCells.Add(cell);
                 }
             }
-
-            destroyingCells.Add(currentCell);
 
             return destroyingCells.ToList();
         }

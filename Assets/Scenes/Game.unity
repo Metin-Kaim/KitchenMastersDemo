@@ -472,6 +472,7 @@ MonoBehaviour:
   - {fileID: -5215292354704330172, guid: 5b0c0b464bbb6cd4aae2dec73fc14299, type: 3}
   specialItems:
   - {fileID: 7417661529698856349, guid: 83c413adcfc03504a8aabda8327f7e86, type: 3}
+  - {fileID: 7415314986969036666, guid: 4a6118180d2a00f47b5d271f3535f3e3, type: 3}
   gridSize: {x: 6, y: 6}
 --- !u!1 &1832891719
 GameObject:

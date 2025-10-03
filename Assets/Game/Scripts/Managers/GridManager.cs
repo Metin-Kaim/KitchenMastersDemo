@@ -123,6 +123,17 @@ namespace Assets.Game.Scripts.Managers
             _gridCells[4, 4].IsLocked = false;
             (special as IItem).CurrentCell = _gridCells[4, 4];
 
+
+            int specialIndex2 = Random.Range(0, specialItems.Length);
+            var special2 = Instantiate(specialItems[specialIndex2], _gridCells[1, 4].transform);
+            special2.transform.localPosition = Vector3.zero;
+            special2.name += $"_[1, 4]";
+            _gridCells[1, 4].CurrentItem = special2.GetComponent<IItem>();
+            _gridCells[1, 4].IsCheckable = false;
+            _gridCells[1, 4].IsLocked = false;
+            (special2 as IItem).CurrentCell = _gridCells[1, 4];
+
+
             PopulateGridWithCandies();
         }
 
@@ -396,7 +407,7 @@ namespace Assets.Game.Scripts.Managers
             {
                 var cell = _gridCells[columnIndex, y];
 
-                if (cell.CurrentItem == null)
+                if (cell.CurrentItem == null && !cell.IsLocked)
                 {
                     // en yakın yukarıdaki dolu hücreyi bul
                     int sourceY = -1;
@@ -411,7 +422,7 @@ namespace Assets.Game.Scripts.Managers
 
                     if (sourceY != -1)
                     {
-                        if (_gridCells[columnIndex, sourceY].IsLocked) break;
+                        if (_gridCells[columnIndex, sourceY].IsLocked) continue;
 
                         var sourceCell = _gridCells[columnIndex, sourceY];
                         var item = sourceCell.CurrentItem;
@@ -421,6 +432,7 @@ namespace Assets.Game.Scripts.Managers
 
                         if (item is IMovable movable)
                             movable.FallToTheCell(cell); // sadece animasyonu başlat
+
                     }
                     else
                     {
@@ -442,7 +454,6 @@ namespace Assets.Game.Scripts.Managers
                     GridSignals.Instance.onCheckMatchesFromCell?.Invoke(c);
             }
         }
-
         #endregion
     }
 }
