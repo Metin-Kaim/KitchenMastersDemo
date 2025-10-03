@@ -461,10 +461,15 @@ MonoBehaviour:
   gridCellPrefab: {fileID: 5449713997619335038, guid: 015dba9e56b2b6a49b6fea71e9c4849a, type: 3}
   gridCellsContainer: {fileID: 497127859}
   candies:
-  - {fileID: 5961890184652418842, guid: bcb9fdb434c5ebb4aa1ffa478a7ea785, type: 3}
-  - {fileID: 6714206039881430415, guid: 96e69be64c255d84fae610d459ebe759, type: 3}
-  - {fileID: 8312762504573550869, guid: 39518b7c2c0307042ae873453371a1b6, type: 3}
-  - {fileID: 6072672919548234767, guid: 918259df2abe0c34b8c723bab323f957, type: 3}
+  - {fileID: 6113886991957475238, guid: bcb9fdb434c5ebb4aa1ffa478a7ea785, type: 3}
+  - {fileID: 7735168116777336316, guid: 96e69be64c255d84fae610d459ebe759, type: 3}
+  - {fileID: -7645034203421334552, guid: 39518b7c2c0307042ae873453371a1b6, type: 3}
+  - {fileID: -7484357315158029401, guid: 918259df2abe0c34b8c723bab323f957, type: 3}
+  blocks:
+  - {fileID: 6133247020516429251, guid: 7eb12a643e1a7f34fb301b4328dd7300, type: 3}
+  - {fileID: 6133247020516429251, guid: a67d0b1bc2577414e81c74f27ce52bc0, type: 3}
+  hibritBlocks:
+  - {fileID: -5215292354704330172, guid: 5b0c0b464bbb6cd4aae2dec73fc14299, type: 3}
   gridSize: {x: 6, y: 6}
 --- !u!1 &1832891719
 GameObject:

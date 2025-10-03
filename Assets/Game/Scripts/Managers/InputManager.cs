@@ -26,7 +26,7 @@ namespace Assets.Game.Scripts.Managers
                 {
                     if (hit.collider.TryGetComponent(out GridCellHandler cell))
                     {
-                        if (cell.IsBlocked) return;
+                        if (cell.IsLocked) return;
 
                         mouseTouchedPosition = mousePos;
                         selectedCell = cell;

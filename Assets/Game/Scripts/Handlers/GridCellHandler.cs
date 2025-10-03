@@ -1,5 +1,8 @@
 ﻿using Assets.Game.Scripts.Abstracts;
+using Assets.Game.Scripts.Handlers;
 using Assets.Game.Scripts.Signals;
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class GridCellHandler : MonoBehaviour
@@ -7,11 +10,13 @@ public class GridCellHandler : MonoBehaviour
     [SerializeField] private IItem currentItem;
     [SerializeField] private Vector2Int gridPosition;
     [SerializeField] private bool isBlocked;
+    [SerializeField] private bool isLocked;
 
     public IItem CurrentItem { get => currentItem; set => currentItem = value; }
     public Vector2Int GridPosition { get => gridPosition; set => gridPosition = value; }
     public bool IsBlocked { get => isBlocked; set => isBlocked = value; }
     public bool IsChecked { get; internal set; }
+    public bool IsLocked { get => isLocked; set => isLocked = value; }
 
     public void SwapItemWithNeighbourCell(Vector2Int direction)
     {
@@ -32,11 +37,34 @@ public class GridCellHandler : MonoBehaviour
         {
             IMovable tempCurrentMovable = currentItem as IMovable;
 
-            isBlocked = true;
-            nextCell.isBlocked = true;
-
             nextMovable.MoveToCell(this);
             tempCurrentMovable.MoveToCell(nextCell);
         }
+    }
+
+    public List<GridCellHandler> CheckForBlocks(GridCellHandler[,] gridCells)
+    {
+        int[,] directions = new int[4, 2] { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } };
+
+        List<GridCellHandler> blockingCells = new List<GridCellHandler>();
+
+        for (int i = 0; i < directions.GetLength(0); i++)
+        {
+            Vector2Int neighbourPos = gridPosition + new Vector2Int(directions[i, 0], directions[i, 1]);
+            if (neighbourPos.x >= 0 && neighbourPos.x < gridCells.GetLength(0) &&
+                neighbourPos.y >= 0 && neighbourPos.y < gridCells.GetLength(1))
+            {
+                GridCellHandler neighbourCell = gridCells[neighbourPos.x, neighbourPos.y];
+                if (neighbourCell.currentItem != null && neighbourCell.isBlocked)
+                {
+                    if ((neighbourCell.currentItem as AbsBlock).CheckForImpact())
+                    {
+                        blockingCells.Add(neighbourCell);
+                    }
+                }
+            }
+        }
+
+        return blockingCells;
     }
 }

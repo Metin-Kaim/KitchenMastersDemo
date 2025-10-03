@@ -15,7 +15,9 @@ namespace Assets.Game.Scripts.Managers
         [Header("Prefabs and Containers")]
         [SerializeField] private GridCellHandler gridCellPrefab;
         [SerializeField] private Transform gridCellsContainer;
-        [SerializeField] private GameObject[] candies;
+        [SerializeField] private CandyHandler[] candies;
+        [SerializeField] private AbsBlock[] blocks;
+        [SerializeField] private AbsBlock[] hibritBlocks;
 
         [Header("Grid Settings")]
         [SerializeField] private Vector2Int gridSize = new(8, 8);
@@ -77,6 +79,38 @@ namespace Assets.Game.Scripts.Managers
                 }
             }
 
+            for (int x = 0; x < gridSize.x; x++)
+            {
+                for (int y = 0; y < gridSize.y; y++)
+                {
+                    if ((x == 1 && y == 3) || (x == 3 && y == 2) || (x == 1 && y == 2) || (x == 5 && y == 2))
+                    {
+                        int blockIndex = Random.Range(0, hibritBlocks.Length);
+                        AbsBlock block = Instantiate(hibritBlocks[blockIndex], _gridCells[x, y].transform);
+                        block.transform.localPosition = Vector3.zero;
+                        block.name += $"_({x},{y})";
+                        _gridCells[x, y].CurrentItem = block.GetComponent<IItem>();
+                        _gridCells[x, y].IsBlocked = true;
+                        (block as IItem).CurrentCell = _gridCells[x, y];
+                    }
+                }
+            }
+
+            for (int y = 0; y < 2; y++)
+            {
+                for (int x = 0; x < gridSize.x; x++)
+                {
+                    int blockIndex = Random.Range(0, blocks.Length);
+                    var block = Instantiate(blocks[blockIndex], _gridCells[x, y].transform);
+                    block.transform.localPosition = Vector3.zero;
+                    block.name += $"_({x},{y})";
+                    _gridCells[x, y].CurrentItem = block.GetComponent<IItem>();
+                    _gridCells[x, y].IsBlocked = true;
+                    _gridCells[x, y].IsLocked = true;
+                    (block as IItem).CurrentCell = _gridCells[x, y];
+                }
+            }
+
             PopulateGridWithCandies();
         }
 
@@ -88,11 +122,14 @@ namespace Assets.Game.Scripts.Managers
             {
                 for (int y = 0; y < gridSize.y; y++)
                 {
+                    if (_gridCells[x, y].CurrentItem != null) continue;
+
                     int randomIndex = random.Next(candies.Length);
-                    GameObject candy = Instantiate(candies[randomIndex], _gridCells[x, y].transform);
+                    var candy = Instantiate(candies[randomIndex], _gridCells[x, y].transform);
                     candy.transform.localPosition = Vector3.zero;
                     candy.name += $"_({x},{y})";
                     _gridCells[x, y].CurrentItem = candy.GetComponent<IItem>();
+                    candy.CurrentCell = _gridCells[x, y];
                 }
             }
         }
@@ -112,7 +149,7 @@ namespace Assets.Game.Scripts.Managers
                 if (cell.CurrentItem != null) continue;
 
                 int randomIndex = Random.Range(0, candies.Length);
-                GameObject candy = Instantiate(candies[randomIndex], cell.transform);
+                var candy = Instantiate(candies[randomIndex], cell.transform);
                 candy.transform.localPosition = Vector3.up * (gridSize.y - y + 1); // yukarıdan düşecek
                 candy.name += $"_({cell.GridPosition.x},{cell.GridPosition.y})";
 
@@ -300,6 +337,13 @@ namespace Assets.Game.Scripts.Managers
         {
             if (matchedCells == null || matchedCells.Count == 0)
                 return;
+            List<GridCellHandler> blockingCells = new(matchedCells);
+            foreach (var cell in matchedCells)
+            {
+                blockingCells.AddRange(cell.CheckForBlocks(_gridCells));
+            }
+
+            matchedCells.AddRange(blockingCells);
 
             var affectedColumns = new HashSet<int>();
 
@@ -367,7 +411,7 @@ namespace Assets.Game.Scripts.Managers
             for (int y = 0; y < height; y++)
             {
                 var c = _gridCells[columnIndex, y];
-                if (c.CurrentItem != null)
+                if (c.CurrentItem != null && !c.IsBlocked)
                     GridSignals.Instance.onCheckMatchesFromCell?.Invoke(c);
             }
         }
