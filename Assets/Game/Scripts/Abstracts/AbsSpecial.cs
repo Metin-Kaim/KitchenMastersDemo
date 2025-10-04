@@ -24,12 +24,12 @@ namespace Assets.Game.Scripts.Abstracts
 
             GridCellHandler[,] gridCells = GridSignals.Instance.onGetGridCells?.Invoke();
 
-            int[,] ints = new int[8, 2] { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 }, { 1, 1 }, { -1, -1 }, { 1, -1 }, { -1, 1 } };
+            int[,] area = new int[8, 2] { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 }, { 1, 1 }, { -1, -1 }, { 1, -1 }, { -1, 1 } };
 
-            for (int i = 0; i < ints.GetLength(0); i++)
+            for (int i = 0; i < area.GetLength(0); i++)
             {
-                int nextX = currentCell.GridPosition.x + ints[i, 0];
-                int nextY = currentCell.GridPosition.y + ints[i, 1];
+                int nextX = currentCell.GridPosition.x + area[i, 0];
+                int nextY = currentCell.GridPosition.y + area[i, 1];
 
                 if (nextX < 0 || nextX >= gridCells.GetLength(0) ||
                   nextY < 0 || nextY >= gridCells.GetLength(1))

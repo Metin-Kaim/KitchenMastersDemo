@@ -114,7 +114,7 @@ namespace Assets.Game.Scripts.Managers
                 }
             }
 
-            int specialIndex = Random.Range(0, specialItems.Length);
+            int specialIndex = Random.Range(1, 2);
             var special = Instantiate(specialItems[specialIndex], _gridCells[4, 4].transform);
             special.transform.localPosition = Vector3.zero;
             special.name += $"_(4,4)";
@@ -124,14 +124,14 @@ namespace Assets.Game.Scripts.Managers
             (special as IItem).CurrentCell = _gridCells[4, 4];
 
 
-            int specialIndex2 = Random.Range(0, specialItems.Length);
-            var special2 = Instantiate(specialItems[specialIndex2], _gridCells[1, 4].transform);
+            int specialIndex2 = Random.Range(1, 2);
+            var special2 = Instantiate(specialItems[specialIndex2], _gridCells[4,3].transform);
             special2.transform.localPosition = Vector3.zero;
-            special2.name += $"_[1, 4]";
-            _gridCells[1, 4].CurrentItem = special2.GetComponent<IItem>();
-            _gridCells[1, 4].IsCheckable = false;
-            _gridCells[1, 4].IsLocked = false;
-            (special2 as IItem).CurrentCell = _gridCells[1, 4];
+            special2.name += $"_[4,3]";
+            _gridCells[4,3].CurrentItem = special2.GetComponent<IItem>();
+            _gridCells[4,3].IsCheckable = false;
+            _gridCells[4,3].IsLocked = false;
+            (special2 as IItem).CurrentCell = _gridCells[4,3];
 
 
             PopulateGridWithCandies();

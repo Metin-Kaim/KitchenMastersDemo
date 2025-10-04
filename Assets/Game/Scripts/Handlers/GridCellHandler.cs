@@ -1,8 +1,10 @@
 ﻿using Assets.Game.Scripts.Abstracts;
 using Assets.Game.Scripts.Handlers;
 using Assets.Game.Scripts.Signals;
+using DG.Tweening;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class GridCellHandler : MonoBehaviour
@@ -33,12 +35,19 @@ public class GridCellHandler : MonoBehaviour
 
         GridCellHandler nextCell = cells[neighbourPos.x, neighbourPos.y];
 
-        if (nextCell.currentItem != null && nextCell.currentItem is IMovable nextMovable)
+        if (nextCell.currentItem != null)
         {
-            IMovable tempCurrentMovable = currentItem as IMovable;
+            if (currentItem is AbsSpecial _ && nextCell.currentItem is AbsSpecial _)
+            {
+                BeginTheCombonation(this, nextCell);
+            }
+            else if (nextCell.currentItem is IMovable nextMovable)
+            {
+                IMovable tempCurrentMovable = currentItem as IMovable;
 
-            nextMovable.MoveToCell(this);
-            tempCurrentMovable.MoveToCell(nextCell);
+                nextMovable.MoveToCell(this);
+                tempCurrentMovable.MoveToCell(nextCell);
+            }
         }
     }
 
@@ -74,5 +83,152 @@ public class GridCellHandler : MonoBehaviour
         }
 
         return blockingCells;
+    }
+
+    private void BeginTheCombonation(GridCellHandler cell1, GridCellHandler cell2)
+    {
+        MonoBehaviour cell1Item = (cell1.currentItem as MonoBehaviour);
+        cell1Item.transform.SetParent(cell2.transform);
+
+        cell1Item.transform.DOLocalMove(Vector2.zero, 0.2f).SetEase(Ease.InOutFlash).OnComplete(() =>
+        {
+            ApplyCombo(cell1, cell2);
+        });
+    }
+
+    private void ApplyCombo(GridCellHandler cell1, GridCellHandler cell2)
+    {
+        GridCellHandler[,] gridCells = GridSignals.Instance.onGetGridCells?.Invoke();
+
+        HashSet<GridCellHandler> destroyingCells = new HashSet<GridCellHandler>() { cell1, cell2 };
+
+        ItemTypes itemType1 = cell1.currentItem.ItemType;
+        ItemTypes itemType2 = cell2.currentItem.ItemType;
+
+        if (itemType1 == ItemTypes.Bomb && itemType2 == ItemTypes.Bomb)
+        {
+            int[,] area = new int[,] { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 }, { 1, 1 }, { -1, -1 }, { 1, -1 }, { -1, 1 }, { 2, 0 }, { 2, 1 }, { 2, 2 }, { 1, 2 }, { 0, 2 }, { -1, 2 }, { -2, 2 }, { -2, -1 }, { -2, 0 }, { -2, -1 }, { -2, -2 }, { -1, -2 }, { -0, -2 }, { 1, -2 }, { 2, -2 }, { 2, -1 } };
+
+            for (int i = 0; i < area.GetLength(0); i++)
+            {
+                int nextX = cell2.gridPosition.x + area[i, 0];
+                int nextY = cell2.gridPosition.y + area[i, 1];
+
+                if (nextX < 0 || nextX >= gridCells.GetLength(0) ||
+                  nextY < 0 || nextY >= gridCells.GetLength(1))
+                    continue;
+
+                GridCellHandler cell = gridCells[nextX, nextY];
+
+                if (cell == cell1 || cell == cell2) continue;
+
+                CheckTheCellByItemType(destroyingCells, cell);
+            }
+        }
+        else if ((itemType1 == ItemTypes.Bomb && itemType2 == ItemTypes.Rocket) || (itemType1 == ItemTypes.Rocket && itemType2 == ItemTypes.Bomb))
+        {
+            for (int i = -1; i < 2; i++)
+            {
+                for (int j = 0; j < gridCells.GetLength(0); j++)
+                {
+                    GridCellHandler cell = gridCells[j, cell2.gridPosition.y + i];
+
+                    if (cell == cell1 || cell == cell2) continue;
+                    CheckTheCellByItemType(destroyingCells, cell);
+                }
+                for (int j = 0; j < gridCells.GetLength(1); j++)
+                {
+                    GridCellHandler cell = gridCells[cell2.gridPosition.x + i, j];
+
+                    if (cell == cell1 || cell == cell2) continue;
+                    CheckTheCellByItemType(destroyingCells, cell);
+                }
+            }
+        }
+        else if (itemType1 == ItemTypes.Rocket && itemType2 == ItemTypes.Rocket)
+        {
+            for (int i = 0; i < gridCells.GetLength(0); i++)
+            {
+                GridCellHandler cell = gridCells[i, cell2.gridPosition.y];
+
+                if (cell == cell1 || cell == cell2) continue;
+
+                CheckTheCellByItemType(destroyingCells, cell);
+            }
+            for (int i = 0; i < gridCells.GetLength(1); i++)
+            {
+                GridCellHandler cell = gridCells[cell2.gridPosition.x, i];
+
+                if (cell == cell1 || cell == cell2) continue;
+
+                CheckTheCellByItemType(destroyingCells, cell);
+            }
+
+            // 4 çapraz yön vektörleri
+            Vector2Int[] diagonalDirs = new Vector2Int[]
+            {
+    new Vector2Int(-1, -1), // sol alt
+    new Vector2Int(-1, +1), // sol üst
+    new Vector2Int(+1, -1), // sağ alt
+    new Vector2Int(+1, +1)  // sağ üst
+            };
+
+            foreach (var dir in diagonalDirs)
+            {
+                int checkX = cell2.gridPosition.x + dir.x;
+                int checkY = cell2.gridPosition.y + dir.y;
+
+                // grid dışına çıkana kadar ilerle
+                while (checkX >= 0 && checkY >= 0 &&
+                       checkX < gridCells.GetLength(0) &&
+                       checkY < gridCells.GetLength(1))
+                {
+                    GridCellHandler cell = gridCells[checkX, checkY];
+
+                    if (cell == cell1 || cell == cell2)
+                    {
+                        checkX += dir.x;
+                        checkY += dir.y;
+                        continue;
+                    }
+
+                    CheckTheCellByItemType(destroyingCells, cell);
+
+                    // aynı yönde bir sonraki hücreye geç
+                    checkX += dir.x;
+                    checkY += dir.y;
+                }
+            }
+
+        }
+
+        if (destroyingCells.Count > 0)
+            GridSignals.Instance.onDestroyMatches?.Invoke(destroyingCells.ToList(), false);
+    }
+
+    private void CheckTheCellByItemType(HashSet<GridCellHandler> destroyingCells, GridCellHandler cell)
+    {
+        if (cell != null && cell.CurrentItem != null)
+        {
+            if (cell.CurrentItem is AbsBlock block)
+            {
+                if (block.CheckForImpact())
+                {
+                    destroyingCells.Add(cell);
+                }
+            }
+            else if (cell.CurrentItem is AbsSpecial special && special != this)
+            {
+                List<GridCellHandler> cells = special.GetAllAroundCells();
+
+                foreach (var c in cells)
+                {
+                    destroyingCells.Add(c);
+                }
+            }
+            else
+                destroyingCells.Add(cell);
+
+        }
     }
 }
