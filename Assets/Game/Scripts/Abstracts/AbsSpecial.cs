@@ -37,12 +37,13 @@ namespace Assets.Game.Scripts.Abstracts
 
                 GridCellHandler cell = gridCells[nextX, nextY];
 
-                if (cell != null && cell.CurrentItem != null)
+                if (cell != null && cell.CurrentItem != null && !cell.IsChecked)
                 {
                     if (cell.CurrentItem is AbsBlock block)
                     {
                         if (block.CheckForImpact())
                         {
+                            cell.IsChecked = true;
                             destroyingCells.Add(cell);
                         }
                     }
@@ -52,11 +53,15 @@ namespace Assets.Game.Scripts.Abstracts
 
                         foreach (var c in cells)
                         {
+                            cell.IsChecked = true;
                             destroyingCells.Add(c);
                         }
                     }
                     else
+                    {
+                        cell.IsChecked = true;
                         destroyingCells.Add(cell);
+                    }
                 }
             }
 

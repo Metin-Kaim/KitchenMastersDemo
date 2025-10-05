@@ -9,131 +9,62 @@ namespace Assets.Game.Scripts.Handlers
     {
         public override List<GridCellHandler> GetAllAroundCells()
         {
+            //if(currentCell.IsChecked) return new List<GridCellHandler>();
+
             HashSet<GridCellHandler> destroyingCells = new HashSet<GridCellHandler>() { currentCell };
+
+            currentCell.IsChecked = true;
 
             GridCellHandler[,] gridCells = GridSignals.Instance.onGetGridCells?.Invoke();
 
-            List<List<GridCellHandler>> detectedCells = new();
-
-            detectedCells.Add(new List<GridCellHandler>());
-            detectedCells.Add(new List<GridCellHandler>());
-            detectedCells.Add(new List<GridCellHandler>());
-            detectedCells.Add(new List<GridCellHandler>());
-
-            for (int x = currentCell.GridPosition.x + 1; x < gridCells.GetLength(0); x++)
+            for (int i = 0; i < gridCells.GetLength(0); i++)
             {
-                GridCellHandler cell = gridCells[x, currentCell.GridPosition.y];
-                if (cell.CurrentItem != null)
-                {
-                    if (cell.CurrentItem is AbsBlock block)
-                    {
-                        if (block.CheckForImpact())
-                        {
-                            detectedCells[0].Add(cell);
-                        }
-                    }
-                    else if (cell.CurrentItem is AbsSpecial special && special != this)
-                    {
-                        List<GridCellHandler> cells = special.GetAllAroundCells();
+                GridCellHandler cell = gridCells[i, currentCell.GridPosition.y];
 
-                        foreach (var c in cells)
-                        {
-                            detectedCells[0].Add(c);
-                        }
-                    }
-                    else
-                        detectedCells[0].Add(cell);
-                }
+                if (cell == currentCell || cell.IsChecked) continue;
+
+                CheckTheCellByItemType(destroyingCells, cell);
             }
-            for (int x = currentCell.GridPosition.x - 1; x >= 0; x--)
+            for (int i = 0; i < gridCells.GetLength(1); i++)
             {
-                GridCellHandler cell = gridCells[x, currentCell.GridPosition.y];
-                if (cell.CurrentItem != null)
-                {
-                    if (cell.CurrentItem is AbsBlock block)
-                    {
-                        if (block.CheckForImpact())
-                        {
-                            detectedCells[1].Add(cell);
-                        }
-                    }
-                    else if (cell.CurrentItem is AbsSpecial special && special != this)
-                    {
-                        List<GridCellHandler> cells = special.GetAllAroundCells();
+                GridCellHandler cell = gridCells[currentCell.GridPosition.x, i];
 
-                        foreach (var c in cells)
-                        {
-                            detectedCells[1].Add(c);
-                        }
-                    }
-                    else
-                        detectedCells[1].Add(cell);
-                }
+                if (cell == currentCell || cell.IsChecked) continue;
+
+                CheckTheCellByItemType(destroyingCells, cell);
             }
-            for (int y = currentCell.GridPosition.y + 1; y < gridCells.GetLength(0); y++)
-            {
-                GridCellHandler cell = gridCells[currentCell.GridPosition.x, y];
-                if (cell.CurrentItem != null)
-                {
-                    if (cell.CurrentItem is AbsBlock block)
-                    {
-                        if (block.CheckForImpact())
-                        {
-                            detectedCells[3].Add(cell);
-                        }
-                    }
-                    else if (cell.CurrentItem is AbsSpecial special && special != this)
-                    {
-                        List<GridCellHandler> cells = special.GetAllAroundCells();
-
-                        foreach (var c in cells)
-                        {
-                            detectedCells[3].Add(c);
-                        }
-                    }
-                    else
-                        detectedCells[3].Add(cell);
-                }
-            }
-            for (int y = currentCell.GridPosition.y - 1; y >= 0; y--)
-            {
-                GridCellHandler cell = gridCells[currentCell.GridPosition.x, y];
-                if (cell.CurrentItem != null)
-                {
-                    if (cell.CurrentItem is AbsBlock block)
-                    {
-                        if (block.CheckForImpact())
-                        {
-                            detectedCells[3].Add(cell);
-                        }
-                    }
-                    else if (cell.CurrentItem is AbsSpecial special && special != this)
-                    {
-                        List<GridCellHandler> cells = special.GetAllAroundCells();
-
-                        foreach (var c in cells)
-                        {
-                            detectedCells[3].Add(c);
-                        }
-                    }
-                    else
-                        detectedCells[3].Add(cell);
-                }
-            }
-
-            detectedCells = detectedCells.OrderBy(x => x.Count).ToList();
-
-            for (int i = 0; i < detectedCells[3].Count; i++)
-            {
-                for (int j = 0; j < detectedCells.Count; j++)
-                {
-                    if (detectedCells[j].Count > i)
-                        destroyingCells.Add(detectedCells[j][i]);
-                }
-            }
-
 
             return destroyingCells.ToList();
+        }
+
+        private void CheckTheCellByItemType(HashSet<GridCellHandler> destroyingCells, GridCellHandler cell)
+        {
+            if (cell != null && cell.CurrentItem != null)
+            {
+                if (cell.CurrentItem is AbsBlock block)
+                {
+                    if (block.CheckForImpact())
+                    {
+                        cell.IsChecked = true;
+                        destroyingCells.Add(cell);
+                    }
+                }
+                else if (cell.CurrentItem is AbsSpecial special && special != this)
+                {
+                    List<GridCellHandler> cells = special.GetAllAroundCells();
+
+                    foreach (var c in cells)
+                    {
+                        c.IsChecked = true;
+                        destroyingCells.Add(c);
+                    }
+                }
+                else if (cell.CurrentItem != null)
+                {
+                    cell.IsChecked = true;
+                    destroyingCells.Add(cell);
+                }
+            }
         }
     }
 }

@@ -80,7 +80,6 @@ namespace Assets.Game.Scripts.Managers
                 {
                     if(selectedCell.CurrentItem != null && selectedCell.CurrentItem is AbsSpecial special)
                     {
-                        print("BOMB: " + special.CurrentCell.GridPosition);
                         special.Interact();
                     }
                 }

@@ -105,6 +105,9 @@ public class GridCellHandler : MonoBehaviour
         ItemTypes itemType1 = cell1.currentItem.ItemType;
         ItemTypes itemType2 = cell2.currentItem.ItemType;
 
+        cell1.IsChecked = true;
+        cell2.IsChecked = true;
+
         if (itemType1 == ItemTypes.Bomb && itemType2 == ItemTypes.Bomb)
         {
             int[,] area = new int[,] { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 }, { 1, 1 }, { -1, -1 }, { 1, -1 }, { -1, 1 }, { 2, 0 }, { 2, 1 }, { 2, 2 }, { 1, 2 }, { 0, 2 }, { -1, 2 }, { -2, 2 }, { -2, -1 }, { -2, 0 }, { -2, -1 }, { -2, -2 }, { -1, -2 }, { -0, -2 }, { 1, -2 }, { 2, -2 }, { 2, -1 } };
@@ -121,6 +124,7 @@ public class GridCellHandler : MonoBehaviour
                 GridCellHandler cell = gridCells[nextX, nextY];
 
                 if (cell == cell1 || cell == cell2) continue;
+                if (cell.IsChecked) continue;
 
                 CheckTheCellByItemType(destroyingCells, cell);
             }
@@ -134,6 +138,7 @@ public class GridCellHandler : MonoBehaviour
                     GridCellHandler cell = gridCells[j, cell2.gridPosition.y + i];
 
                     if (cell == cell1 || cell == cell2) continue;
+                    if (cell.IsChecked) continue;
                     CheckTheCellByItemType(destroyingCells, cell);
                 }
                 for (int j = 0; j < gridCells.GetLength(1); j++)
@@ -141,6 +146,7 @@ public class GridCellHandler : MonoBehaviour
                     GridCellHandler cell = gridCells[cell2.gridPosition.x + i, j];
 
                     if (cell == cell1 || cell == cell2) continue;
+                    if (cell.IsChecked) continue;
                     CheckTheCellByItemType(destroyingCells, cell);
                 }
             }
@@ -152,7 +158,7 @@ public class GridCellHandler : MonoBehaviour
                 GridCellHandler cell = gridCells[i, cell2.gridPosition.y];
 
                 if (cell == cell1 || cell == cell2) continue;
-
+                if (cell.IsChecked) continue;
                 CheckTheCellByItemType(destroyingCells, cell);
             }
             for (int i = 0; i < gridCells.GetLength(1); i++)
@@ -160,7 +166,7 @@ public class GridCellHandler : MonoBehaviour
                 GridCellHandler cell = gridCells[cell2.gridPosition.x, i];
 
                 if (cell == cell1 || cell == cell2) continue;
-
+                if (cell.IsChecked) continue;
                 CheckTheCellByItemType(destroyingCells, cell);
             }
 
@@ -168,7 +174,7 @@ public class GridCellHandler : MonoBehaviour
             Vector2Int[] diagonalDirs = new Vector2Int[]
             {
     new Vector2Int(-1, -1), // sol alt
-    new Vector2Int(-1, +1), // sol üst
+    new Vector2Int(-1, +1), // sol üst 
     new Vector2Int(+1, -1), // sağ alt
     new Vector2Int(+1, +1)  // sağ üst
             };
@@ -191,7 +197,7 @@ public class GridCellHandler : MonoBehaviour
                         checkY += dir.y;
                         continue;
                     }
-
+                    if (cell.IsChecked) continue;
                     CheckTheCellByItemType(destroyingCells, cell);
 
                     // aynı yönde bir sonraki hücreye geç
@@ -203,7 +209,12 @@ public class GridCellHandler : MonoBehaviour
         }
 
         if (destroyingCells.Count > 0)
+        {
+            foreach (GridCellHandler cell in destroyingCells)
+                cell.IsChecked = false;
+
             GridSignals.Instance.onDestroyMatches?.Invoke(destroyingCells.ToList(), false);
+        }
     }
 
     private void CheckTheCellByItemType(HashSet<GridCellHandler> destroyingCells, GridCellHandler cell)
@@ -214,6 +225,7 @@ public class GridCellHandler : MonoBehaviour
             {
                 if (block.CheckForImpact())
                 {
+                    cell.IsChecked = true;
                     destroyingCells.Add(cell);
                 }
             }
@@ -223,11 +235,15 @@ public class GridCellHandler : MonoBehaviour
 
                 foreach (var c in cells)
                 {
+                    cell.IsChecked = true;
                     destroyingCells.Add(c);
                 }
             }
             else
+            {
+                cell.IsChecked = true;
                 destroyingCells.Add(cell);
+            }
 
         }
     }
