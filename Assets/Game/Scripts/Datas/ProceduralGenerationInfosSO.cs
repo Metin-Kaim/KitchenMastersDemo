@@ -7,7 +7,7 @@ namespace Assets.Game.Scripts.Datas
     [CreateAssetMenu(fileName = "ProceduralGenerationInfos", menuName = "KitchenMasterDemo->/new ProceduralGenerationInfosSO")]
     public class ProceduralGenerationInfosSO : ScriptableObject
     {
-
+        public List<ProceduralGenerationInfos> proceduralGenerationInfos;
     }
 
     [Serializable]
@@ -15,7 +15,7 @@ namespace Assets.Game.Scripts.Datas
     {
         public DifficultyTypes DifficultyType;
         public List<Vector2Int> UsableGridSizes;
-        [Range(0, 100)] public byte SpecialItemSpawnPossibility;
+        [Range(0, 100), EditorAttributes.Prefix("%")] public byte SpecialItemSpawnPossibility;
         [Range(0, 100)] public byte BlockSpawnPossibility;
         [Range(0, 4)] public byte MinBlockSpacing;
         [Range(1, 5)] public byte MaxStartingMatches;

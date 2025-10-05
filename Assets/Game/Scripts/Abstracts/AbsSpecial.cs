@@ -22,6 +22,8 @@ namespace Assets.Game.Scripts.Abstracts
         {
             HashSet<GridCellHandler> destroyingCells = new HashSet<GridCellHandler>() { currentCell };
 
+            currentCell.IsChecked = true;
+
             GridCellHandler[,] gridCells = GridSignals.Instance.onGetGridCells?.Invoke();
 
             int[,] area = new int[8, 2] { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 }, { 1, 1 }, { -1, -1 }, { 1, -1 }, { -1, 1 } };
