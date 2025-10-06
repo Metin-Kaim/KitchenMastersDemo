@@ -11,7 +11,6 @@ namespace Assets.Game.Scripts.Managers
 {
     public class GridManager : MonoBehaviour
     {
-        #region Fields & Inspector
 
         [Header("Prefabs and Containers")]
         [SerializeField] private GridCellHandler gridCellPrefab;
@@ -28,16 +27,12 @@ namespace Assets.Game.Scripts.Managers
         private Vector2Int gridSize;
         private GridCellHandler[,] _gridCells;
 
-        #endregion
-
-        #region Unity Lifecycle
-
         private void OnEnable()
         {
             GridSignals.Instance.onGetGridCells += GetGridCells;
             GridSignals.Instance.onGetGridSize += GetGridSize;
             GridSignals.Instance.onCheckMatchesFromCell += CheckMatchesFromCell;
-            GridSignals.Instance.onSpawnNewItems += OnSpawnNewItems;
+            GridSignals.Instance.onSpawnNewItems += OnSpawnNewCandies;
             GridSignals.Instance.onDestroyMatches += DestroyMatches;
         }
 
@@ -72,7 +67,7 @@ namespace Assets.Game.Scripts.Managers
             GridSignals.Instance.onGetGridCells -= GetGridCells;
             GridSignals.Instance.onGetGridSize -= GetGridSize;
             GridSignals.Instance.onCheckMatchesFromCell -= CheckMatchesFromCell;
-            GridSignals.Instance.onSpawnNewItems -= OnSpawnNewItems;
+            GridSignals.Instance.onSpawnNewItems -= OnSpawnNewCandies;
             GridSignals.Instance.onDestroyMatches -= DestroyMatches;
         }
 
@@ -83,22 +78,8 @@ namespace Assets.Game.Scripts.Managers
             GameSignals.Instance.onSaveGame?.Invoke(GetLevelSaveData());
         }
 
-        private void Update()
-        {
-            if (Input.GetKeyDown(KeyCode.Space))
-                Debug.Break();
-        }
-
-        #endregion
-
-        #region Grid Accessors
-
         private GridCellHandler[,] GetGridCells() => _gridCells;
         private Vector2Int GetGridSize() => gridSize;
-
-        #endregion
-
-        #region Grid Generation
 
         private void GenerateGrid()
         {
@@ -107,7 +88,7 @@ namespace Assets.Game.Scripts.Managers
             gridSize = proceduralGenerationInfo.UsableGridSizes[Random.Range(0, proceduralGenerationInfo.UsableGridSizes.Count)];
 
             _gridCells = new GridCellHandler[gridSize.x, gridSize.y];
-            GenerateCells();
+            CreateCells();
 
             List<Vector2Int> blockedCellPositions = new();
             List<Vector2Int> hybridBlockedCellPositions = new();
@@ -180,7 +161,6 @@ namespace Assets.Game.Scripts.Managers
 
             PopulateGridWithCandies();
         }
-
         public void TryPattern(GridCellHandler cell)
         {
             Vector2Int currentPos = cell.GridPosition;
@@ -188,7 +168,7 @@ namespace Assets.Game.Scripts.Managers
             if (cell.CurrentItem != null)
                 return;
 
-            List<ItemTypes> forbiddenTypes = new(); // ⬅️ Burada listeyi açıyoruz
+            List<ItemTypes> forbiddenTypes = new();
 
             List<List<Vector2Int>> allPatterns = new()
             {
@@ -211,7 +191,7 @@ namespace Assets.Game.Scripts.Managers
                         finalPositions.Add(offset + currentPos);
 
                     foreach (var pos in finalPositions)
-                        CheckForbiddenColors(pos, forbiddenTypes); // ⬅️ Listeyi gönderiyoruz
+                        CheckForbiddenColors(pos, forbiddenTypes);
 
                     if (forbiddenTypes.Count == 4) continue;
 
@@ -223,13 +203,12 @@ namespace Assets.Game.Scripts.Managers
 
         private void CheckForbiddenColors(Vector2Int currentPos, List<ItemTypes> forbiddenTypes)
         {
-            // 🔹 1 birimlik çevre kontrolü
             Vector2Int[] directions =
             {
-                new(0, 1),   // Yukarı
-                new(0, -1),  // Aşağı
-                new(-1, 0),  // Sol
-                new(1, 0)    // Sağ
+                new(0, 1),
+                new(0, -1),
+                new(-1, 0),
+                new(1, 0)
             };
 
             Dictionary<ItemTypes, int> neighborCounts = new();
@@ -238,7 +217,6 @@ namespace Assets.Game.Scripts.Managers
             {
                 Vector2Int neighborPos = currentPos + dir;
 
-                // Sınır kontrolü
                 if (!IsInsideGrid(neighborPos))
                     continue;
 
@@ -253,26 +231,24 @@ namespace Assets.Game.Scripts.Managers
                     neighborCounts[type] = 1;
             }
 
-            // 🔹 1 birimlik bölgede 1'den fazla görülen tipleri ekle
             foreach (var kvp in neighborCounts)
             {
                 if (kvp.Value > 1 && !forbiddenTypes.Contains(kvp.Key))
                     forbiddenTypes.Add(kvp.Key);
             }
 
-            // 🔹 2 birimlik yönlü kontrol (sol1-sol2, sağ1-sağ2, yukarı1-yukarı2, aşağı1-aşağı2)
             Vector2Int[] mainDirections =
             {
-                new(1, 0),   // Sağ
-                new(-1, 0),  // Sol
-                new(0, 1),   // Yukarı
-                new(0, -1)   // Aşağı
+                new(1, 0),
+                new(-1, 0),
+                new(0, 1),
+                new(0, -1)
             };
 
             foreach (var dir in mainDirections)
             {
-                Vector2Int first = currentPos + dir;       // 1 birim
-                Vector2Int second = currentPos + dir * 2;  // 2 birim
+                Vector2Int first = currentPos + dir;
+                Vector2Int second = currentPos + dir * 2;
 
                 if (!IsInsideGrid(first) || !IsInsideGrid(second))
                     continue;
@@ -290,14 +266,11 @@ namespace Assets.Game.Scripts.Managers
                     forbiddenTypes.Add(type1);
             }
         }
-
-        // 🔸 Yardımcı fonksiyon
         private bool IsInsideGrid(Vector2Int pos)
         {
             return pos.x >= 0 && pos.y >= 0 && pos.x < gridSize.x && pos.y < gridSize.y;
         }
 
-        // Pattern uygun mu kontrolü
         private bool IsPatternAvailable(List<Vector2Int> pattern, Vector2Int origin)
         {
             foreach (var offset in pattern)
@@ -342,7 +315,7 @@ namespace Assets.Game.Scripts.Managers
                 selectedCell.IsLocked = false;
             }
         }
-        public void GenerateCells()
+        public void CreateCells()
         {
             _gridCells = new GridCellHandler[gridSize.x, gridSize.y];
 
@@ -365,8 +338,6 @@ namespace Assets.Game.Scripts.Managers
                 }
             }
         }
-
-
         private void PopulateGridWithCandies()
         {
             for (int x = 0; x < gridSize.x; x++)
@@ -404,11 +375,7 @@ namespace Assets.Game.Scripts.Managers
             }
         }
 
-        #endregion
-
-        #region Spawn New Items
-
-        public void OnSpawnNewItems(GridCellHandler emptyCell)
+        public void OnSpawnNewCandies(GridCellHandler emptyCell)
         {
             int column = emptyCell.GridPosition.x;
             int startY = emptyCell.GridPosition.y;
@@ -431,54 +398,92 @@ namespace Assets.Game.Scripts.Managers
                     movable.FallToTheCell(cell);
             }
         }
-
-        #endregion
-
-        #region Match Checking
-
-        public void CheckMatchesFromCell(GridCellHandler selectedCell)
+        public List<GridCellHandler> CheckMatchesFromCell(GridCellHandler selectedCell)
         {
-            if (selectedCell?.CurrentItem == null) return;
+            if (selectedCell?.CurrentItem == null) return new();
 
             List<GridCellHandler> neighbors = GetNeighborsOfSameType(selectedCell);
 
-            if (neighbors.Count >= 4 && CheckFive(selectedCell, neighbors)) return;
-            if (neighbors.Count >= 3 && CheckFour(selectedCell, neighbors)) return;
-            if (neighbors.Count >= 2 && CheckThree(selectedCell, neighbors)) return;
+            if (neighbors.Count >= 4)
+            {
+                List<GridCellHandler> cells = CheckFive(selectedCell, neighbors);
+                if (cells.Count > 0)
+                    return cells;
+            }
+            if (neighbors.Count >= 3)
+            {
+                List<GridCellHandler> cells = CheckFour(selectedCell, neighbors);
+                if (cells.Count > 0)
+                    return cells;
+            }
+            if (neighbors.Count >= 2)
+            {
+                List<GridCellHandler> cells = CheckThree(selectedCell, neighbors);
+                if (cells.Count > 0)
+                    return cells;
+            }
+
+            return new();
         }
 
-        private bool CheckThree(GridCellHandler cell, List<GridCellHandler> neighbors) =>
-            CheckLineMatch(cell, neighbors, 3);
+        private List<GridCellHandler> CheckThree(GridCellHandler cell, List<GridCellHandler> neighbors)
+        {
+            List<GridCellHandler> cells = CheckLineMatch(cell, neighbors, 3);
+            if (cells.Count > 0)
+                return cells;
+            else
+                return new();
+        }
 
-        private bool CheckFour(GridCellHandler cell, List<GridCellHandler> neighbors) =>
-            CheckSquareMatch(cell, neighbors) || CheckLineMatch(cell, neighbors, 4);
+        private List<GridCellHandler> CheckFour(GridCellHandler cell, List<GridCellHandler> neighbors)
+        {
+            List<GridCellHandler> cells = CheckSquareMatch(cell, neighbors);
+            if (cells.Count > 0)
+                return cells;
+            else
+            {
+                cells = CheckLineMatch(cell, neighbors, 4);
+                if (cells.Count > 0)
+                    return cells;
+                else return new();
+            }
 
-        private bool CheckFive(GridCellHandler cell, List<GridCellHandler> neighbors) =>
-            CheckLineMatch(cell, neighbors, 5) ||
-            CheckTShapeMatch(cell, neighbors) ||
-            CheckLShapeMatch(cell, neighbors);
+        }
 
-        #endregion
+        private List<GridCellHandler> CheckFive(GridCellHandler cell, List<GridCellHandler> neighbors)
+        {
+            List<GridCellHandler> cells = CheckLineMatch(cell, neighbors, 5);
+            if (cells.Count > 0)
+                return cells;
 
-        #region Match Helpers
+            cells = CheckTShapeMatch(cell, neighbors);
+            if (cells.Count > 0)
+                return cells;
 
-        private bool CheckLineMatch(GridCellHandler cell, List<GridCellHandler> neighbors, int length)
+            cells = CheckLShapeMatch(cell, neighbors);
+            if (cells.Count > 0)
+                return cells;
+
+            return new();
+        }
+
+        private List<GridCellHandler> CheckLineMatch(GridCellHandler cell, List<GridCellHandler> neighbors, int length)
         {
             List<GridCellHandler> horiz = CollectLine(cell, neighbors, Vector2Int.right, Vector2Int.left);
             if (horiz.Count >= length)
             {
-                DestroyMatches(horiz);
-                return true;
+                //DestroyMatches(horiz);
+                return horiz;
             }
 
             List<GridCellHandler> vert = CollectLine(cell, neighbors, Vector2Int.up, Vector2Int.down);
             if (vert.Count >= length)
             {
-                DestroyMatches(vert);
-                return true;
+                //DestroyMatches(vert);
+                return vert;
             }
 
-            return false;
+            return new();
         }
 
         private List<GridCellHandler> CollectLine(GridCellHandler start, List<GridCellHandler> neighbors, Vector2Int dir1, Vector2Int dir2)
@@ -503,7 +508,7 @@ namespace Assets.Game.Scripts.Managers
             }
         }
 
-        private bool CheckSquareMatch(GridCellHandler cell, List<GridCellHandler> neighbors)
+        private List<GridCellHandler> CheckSquareMatch(GridCellHandler cell, List<GridCellHandler> neighbors)
         {
             int x = cell.GridPosition.x, y = cell.GridPosition.y;
             Vector2Int[][] offsets = {
@@ -519,29 +524,43 @@ namespace Assets.Game.Scripts.Managers
                 if (offSet.All(off => neighbors.Any(nCell => !nCell.IsLocked && nCell.GridPosition == new Vector2Int(x + off.x, y + off.y))))
                 {
                     square.AddRange(offSet.Select(off => neighbors.First(n => n.GridPosition == new Vector2Int(x + off.x, y + off.y))));
-                    DestroyMatches(square);
-                    return true;
+                    //DestroyMatches(square);
+                    return square;
                 }
             }
 
-            return false;
+            return new();
         }
 
-        private bool CheckTShapeMatch(GridCellHandler cell, List<GridCellHandler> neighbors) =>
-            CheckShape(cell, neighbors,
+        private List<GridCellHandler> CheckTShapeMatch(GridCellHandler cell, List<GridCellHandler> neighbors)
+        {
+            List<GridCellHandler> cells = CheckShape(cell, neighbors,
                 new[] { (0, -1), (0, -2), (-1, 0), (1, 0) },
                 new[] { (0, 1), (0, 2), (-1, 0), (1, 0) },
                 new[] { (-1, 0), (-2, 0), (0, -1), (0, 1) },
                 new[] { (1, 0), (2, 0), (0, -1), (0, 1) });
 
-        private bool CheckLShapeMatch(GridCellHandler cell, List<GridCellHandler> neighbors) =>
-            CheckShape(cell, neighbors,
+            if (cells.Count > 0)
+                return cells;
+
+            return new();
+        }
+
+        private List<GridCellHandler> CheckLShapeMatch(GridCellHandler cell, List<GridCellHandler> neighbors)
+        {
+            List<GridCellHandler> cells = CheckShape(cell, neighbors,
                 new[] { (-1, 0), (-2, 0), (0, 1), (0, 2) },
                 new[] { (-1, 0), (-2, 0), (0, -1), (0, -2) },
                 new[] { (1, 0), (2, 0), (0, 1), (0, 2) },
                 new[] { (1, 0), (2, 0), (0, -1), (0, -2) });
 
-        private bool CheckShape(GridCellHandler cell, List<GridCellHandler> neighbors, params (int dx, int dy)[][] shapes)
+            if (cells.Count > 0)
+                return cells;
+
+            return new();
+        }
+
+        private List<GridCellHandler> CheckShape(GridCellHandler cell, List<GridCellHandler> neighbors, params (int dx, int dy)[][] shapes)
         {
             int x = cell.GridPosition.x, y = cell.GridPosition.y;
 
@@ -551,18 +570,13 @@ namespace Assets.Game.Scripts.Managers
                 {
                     List<GridCellHandler> matched = new() { cell };
                     matched.AddRange(offsets.Select(o => neighbors.First(n => n.GridPosition == new Vector2Int(x + o.dx, y + o.dy))));
-                    DestroyMatches(matched);
-                    return true;
+                    //DestroyMatches(matched);
+                    return matched;
                 }
             }
 
-            return false;
+            return new();
         }
-
-        #endregion
-
-        #region Neighbors
-
         private List<GridCellHandler> GetNeighborsOfSameType(GridCellHandler startCell)
         {
             List<GridCellHandler> connectedCells = new();
@@ -606,11 +620,6 @@ namespace Assets.Game.Scripts.Managers
             return connectedCells;
         }
 
-        #endregion
-
-        #region Destroy & Collapse
-
-        // DestroyMatches
         private void DestroyMatches(List<GridCellHandler> matchedCells, bool checkForBlocks = true)
         {
             if (matchedCells == null || matchedCells.Count == 0)
@@ -642,7 +651,6 @@ namespace Assets.Game.Scripts.Managers
                 affectedColumns.Add(cell.GridPosition.x);
             }
 
-            // Her sütun için coroutine başlat
             foreach (var col in affectedColumns)
                 StartCoroutine(CollapseColumnCoroutine(col));
         }
@@ -651,13 +659,14 @@ namespace Assets.Game.Scripts.Managers
         {
             int height = gridSize.y;
 
+            List<GridCellHandler> connectedCells = new();
+
             for (int y = 0; y < height; y++)
             {
                 var cell = _gridCells[columnIndex, y];
 
                 if (cell.CurrentItem == null && !cell.IsLocked)
                 {
-                    // en yakın yukarıdaki dolu hücreyi bul
                     int sourceY = -1;
                     for (int yy = y + 1; yy < height; yy++)
                     {
@@ -674,34 +683,36 @@ namespace Assets.Game.Scripts.Managers
 
                         var sourceCell = _gridCells[columnIndex, sourceY];
                         var item = sourceCell.CurrentItem;
-                        sourceCell.CurrentItem = null;   // kaynak hücre boşalt
-                        cell.CurrentItem = item;         // hedef hücreyi DOLU işaretle
+                        sourceCell.CurrentItem = null;
+                        cell.CurrentItem = item;
                         item.CurrentCell = cell;
 
                         if (item is IMovable movable)
-                            movable.FallToTheCell(cell); // sadece animasyonu başlat
-
+                            movable.FallToTheCell(cell);
                     }
                     else
                     {
-                        // üstte hiç yok → yeni item spawn et
-                        OnSpawnNewItems(cell);
+                        OnSpawnNewCandies(cell);
                     }
-
-                    yield return new WaitForSeconds(0.05f); // görsel akış için küçük gecikme
+                    connectedCells.Add(cell);
+                    //yield return new WaitForSeconds(0.05f);
                 }
             }
 
-            // Küçük bekle, sonra sütundaki her hücrede match kontrolü yap
-            yield return new WaitForSeconds(0.1f);
+            List<GridCellHandler> cells = new();
 
             for (int y = 0; y < height; y++)
             {
                 var c = _gridCells[columnIndex, y];
                 if (c.CurrentItem != null && c.IsCheckable)
-                    GridSignals.Instance.onCheckMatchesFromCell?.Invoke(c);
+                    cells.AddRange(GridSignals.Instance.onCheckMatchesFromCell?.Invoke(c));
             }
+
+            yield return new WaitUntil(() => connectedCells.All(x => (x.CurrentItem as IMovable).IsFalling == false));
+            //yield return new WaitForSeconds(0.1f);
+
+            //yield return null;
+            GridSignals.Instance.onDestroyMatches?.Invoke(cells, true);
         }
-        #endregion
     }
 }

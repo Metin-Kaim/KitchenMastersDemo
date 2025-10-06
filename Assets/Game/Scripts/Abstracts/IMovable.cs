@@ -1,8 +1,6 @@
-﻿using Assets.Game.Scripts.Handlers;
+﻿
 using DG.Tweening;
-using Unity.VisualScripting.FullSerializer;
-using UnityEngine;
-using static UnityEngine.RuleTile.TilingRuleOutput;
+using Unity.Mathematics;
 
 namespace Assets.Game.Scripts.Abstracts
 {
@@ -10,9 +8,10 @@ namespace Assets.Game.Scripts.Abstracts
     {
         GridCellHandler TargetCell { get; set; }
         bool IsFalling { get; set; }
+        Tweener SwapTween { get; set; }
 
-        void MoveToCell(GridCellHandler newCell);
-
+        void MoveToCell(bool isReverse);
+  
         void FallToTheCell(GridCellHandler targetCell);
     }
 }

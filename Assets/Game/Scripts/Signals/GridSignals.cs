@@ -13,7 +13,7 @@ namespace Assets.Game.Scripts.Signals
         public Func<GridCellHandler[,]> onGetGridCells;
         public Func<Vector2Int> onGetGridSize;
         public UnityAction onCheckTheGridToMatch;
-        public UnityAction<GridCellHandler> onCheckMatchesFromCell;
+        public Func<GridCellHandler, List<GridCellHandler>> onCheckMatchesFromCell;
         public UnityAction<GridCellHandler> onSpawnNewItems;
         public UnityAction<List<GridCellHandler>, bool> onDestroyMatches;
         public Func<LevelSaveData> onGetLevelSaveData;

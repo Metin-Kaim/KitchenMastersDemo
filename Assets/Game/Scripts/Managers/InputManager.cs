@@ -1,8 +1,8 @@
-﻿using Assets.Game.Scripts.Handlers;
-using System.Collections;
+﻿
 using UnityEngine;
 using EditorAttributes;
 using Assets.Game.Scripts.Abstracts;
+using System;
 
 namespace Assets.Game.Scripts.Managers
 {
@@ -41,35 +41,25 @@ namespace Assets.Game.Scripts.Managers
                 {
                     if (mousePos.x - mouseTouchedPosition.x > dragThreshold)
                     {
-                        isDragged = true;
-                        dragDirection = Vector2Int.right;
-                        mouseTouchedPosition = mousePos;
+                        DraggedMouse(mousePos, Vector2Int.right);
                     }
                     else if (mousePos.x - mouseTouchedPosition.x < -dragThreshold)
                     {
-                        isDragged = true;
-                        dragDirection = Vector2Int.left;
-                        mouseTouchedPosition = mousePos;
+                        DraggedMouse(mousePos, Vector2Int.left);
                     }
                     else if (mousePos.y - mouseTouchedPosition.y > dragThreshold)
                     {
-                        isDragged = true;
-                        dragDirection = Vector2Int.up;
-                        mouseTouchedPosition = mousePos;
+                        DraggedMouse(mousePos, Vector2Int.up);
                     }
                     else if (mousePos.y - mouseTouchedPosition.y < -dragThreshold)
                     {
-                        isDragged = true;
-                        dragDirection = Vector2Int.down;
-                        mouseTouchedPosition = mousePos;
+                        DraggedMouse(mousePos, Vector2Int.down);
                     }
 
                     if (isDragged)
                     {
                         selectedCell.SwapItemWithNeighbourCell(dragDirection);
-                        mouseTouchedPosition = Vector3.zero;
-                        isDragged = false;
-                        selectedCell = null;
+                        ResetInputInfos();
                         return;
                     }
                 }
@@ -78,16 +68,28 @@ namespace Assets.Game.Scripts.Managers
             {
                 if (!isDragged)
                 {
-                    if(selectedCell.CurrentItem != null && selectedCell.CurrentItem is AbsSpecial special)
+                    if (selectedCell.CurrentItem != null && selectedCell.CurrentItem is AbsSpecial special)
                     {
                         special.Interact();
                     }
                 }
 
-                mouseTouchedPosition = Vector3.zero;
-                selectedCell = null;
-                isDragged = false;
+                ResetInputInfos();
             }
+        }
+
+        private void ResetInputInfos()
+        {
+            mouseTouchedPosition = Vector3.zero;
+            selectedCell = null;
+            isDragged = false;
+        }
+
+        private void DraggedMouse(Vector3 mousePos, Vector2Int direction)
+        {
+            isDragged = true;
+            dragDirection = direction;
+            mouseTouchedPosition = mousePos;
         }
     }
 }

@@ -545,7 +545,7 @@ MonoBehaviour:
   - {fileID: 7417661529698856349, guid: 83c413adcfc03504a8aabda8327f7e86, type: 3}
   - {fileID: 7415314986969036666, guid: 4a6118180d2a00f47b5d271f3535f3e3, type: 3}
   cellSpacing: {x: 0.9, y: 0.9}
-  difficultyType: 2
+  difficultyType: 1
 --- !u!1 &1585765465
 GameObject:
   m_ObjectHideFlags: 0

@@ -36,8 +36,8 @@ MonoBehaviour:
   - DifficultyType: 2
     UsableGridSizes:
     - {x: 6, y: 6}
-    SpecialItemSpawnPossibility: 15
-    BlockSpawnPossibility: 60
+    SpecialItemSpawnPossibility: 25
+    BlockSpawnPossibility: 50
     HybridBlockSpawnPossibility: 25
     MinBlockSpacing: 0
     MinHybridBlockSpacing: 1

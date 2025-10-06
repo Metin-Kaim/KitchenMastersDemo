@@ -13,6 +13,7 @@ namespace Assets.Game.Scripts.Abstracts
         [SerializeField] private ItemTypes itemType;
         [SerializeField, ReadOnly] protected GridCellHandler currentCell;
 
+        public Tweener SwapTween { get; set; }
         public GridCellHandler TargetCell { get; set; }
         public bool IsFalling { get; set; }
         public ItemTypes ItemType => itemType;
@@ -70,20 +71,22 @@ namespace Assets.Game.Scripts.Abstracts
             return destroyingCells.ToList();
         }
 
-        public void MoveToCell(GridCellHandler newCell)
+        public void MoveToCell(bool isReverse)
         {
-            currentCell = newCell;
-            newCell.CurrentItem = this;
+            transform.SetParent(currentCell.transform);
 
-            transform.SetParent(newCell.transform);
+            SwapTween?.Complete();
 
-            transform.DOLocalMove(Vector2.zero, 0.2f)
-                .SetEase(Ease.InOutFlash).OnComplete(() =>
+            SwapTween = transform.DOLocalMove(Vector2.zero, 0.2f)
+                .SetEase(Ease.Linear).OnComplete(() =>
                 {
-                    newCell.IsCheckable = false;
-                    newCell.IsLocked = false;
+                    currentCell.IsCheckable = false;
+                    currentCell.IsLocked = false;
+                    SwapTween = null;
+                    transform.SetParent(currentCell.transform);
                     Interact();
-                }).SetLink(gameObject, LinkBehaviour.KillOnDestroy);
+                }).SetLink(gameObject, LinkBehaviour.KillOnDestroy)
+                 .SetLoops(isReverse ? 2 : 0, LoopType.Yoyo);
 
         }
 
@@ -102,6 +105,8 @@ namespace Assets.Game.Scripts.Abstracts
 
         public IEnumerator Fall(GridCellHandler targetCell)
         {
+            SwapTween?.Complete();
+
             transform.SetParent(targetCell.transform);
             float distance = Vector2.Distance(transform.localPosition, Vector2.zero);
 

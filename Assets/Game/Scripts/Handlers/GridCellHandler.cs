@@ -1,6 +1,7 @@
 ﻿using Assets.Game.Scripts.Abstracts;
 using Assets.Game.Scripts.Signals;
 using DG.Tweening;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -43,10 +44,42 @@ public class GridCellHandler : MonoBehaviour
             {
                 IMovable tempCurrentMovable = currentItem as IMovable;
 
-                nextMovable.MoveToCell(this);
-                tempCurrentMovable.MoveToCell(nextCell);
+                IItem tempItem = currentItem;
+                currentItem = nextCell.currentItem;
+                nextCell.currentItem = tempItem;
+                nextCell.currentItem.CurrentCell = nextCell;
+                currentItem.CurrentCell = this;
+
+                List<GridCellHandler> matches1 = GridSignals.Instance.onCheckMatchesFromCell?.Invoke(this);
+                List<GridCellHandler> matches2 = GridSignals.Instance.onCheckMatchesFromCell?.Invoke(nextCell);
+
+                if (matches1.Count > 0 || matches2.Count > 0)
+                {
+                    matches1.AddRange(matches2);
+
+                    nextMovable.MoveToCell(false);
+                    tempCurrentMovable.MoveToCell(false);
+                    StartCoroutine(SwapItems(matches1));
+                }
+                else
+                {
+                    nextMovable.MoveToCell(true);
+                    tempCurrentMovable.MoveToCell(true);
+
+                    nextCell.currentItem = currentItem;
+                    currentItem = tempItem;
+                    nextCell.currentItem.CurrentCell = nextCell;
+                    currentItem.CurrentCell = this;
+                }
+
             }
         }
+    }
+    public IEnumerator SwapItems(List<GridCellHandler> cells)
+    {
+        yield return new WaitForSeconds(.2f);
+
+        GridSignals.Instance.onDestroyMatches?.Invoke(cells, true);
     }
 
     public List<GridCellHandler> CheckForBlocks(GridCellHandler[,] gridCells)
@@ -79,7 +112,7 @@ public class GridCellHandler : MonoBehaviour
     {
         MonoBehaviour cell1Item = (cell1.currentItem as MonoBehaviour);
         cell1Item.transform.SetParent(cell2.transform);
-        print("Switched combos");
+
         cell1Item.transform.DOLocalMove(Vector2.zero, 0.2f).SetEase(Ease.Linear).OnComplete(() =>
         {
             ApplyCombo(cell1, cell2);
@@ -160,13 +193,12 @@ public class GridCellHandler : MonoBehaviour
                 CheckTheCellByItemType(destroyingCells, cell);
             }
 
-            // 4 çapraz yön vektörleri
             Vector2Int[] diagonalDirs = new Vector2Int[]
             {
-                new Vector2Int(-1, -1), // sol alt
-                new Vector2Int(-1, +1), // sol üst 
-                new Vector2Int(+1, -1), // sağ alt
-                new Vector2Int(+1, +1)  // sağ üst
+                new Vector2Int(-1, -1),
+                new Vector2Int(-1, +1),
+                new Vector2Int(+1, -1),
+                new Vector2Int(+1, +1)
             };
 
             foreach (var dir in diagonalDirs)
@@ -174,7 +206,6 @@ public class GridCellHandler : MonoBehaviour
                 int checkX = cell2.gridPosition.x + dir.x;
                 int checkY = cell2.gridPosition.y + dir.y;
 
-                // grid dışına çıkana kadar ilerle
                 while (checkX >= 0 && checkY >= 0 &&
                        checkX < gridCells.GetLength(0) &&
                        checkY < gridCells.GetLength(1))
@@ -190,7 +221,6 @@ public class GridCellHandler : MonoBehaviour
 
                     CheckTheCellByItemType(destroyingCells, cell);
 
-                    // aynı yönde bir sonraki hücreye geç
                     checkX += dir.x;
                     checkY += dir.y;
                 }
