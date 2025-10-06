@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Assets.Game.Scripts.Datas;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
@@ -13,8 +14,9 @@ namespace Assets.Game.Scripts.Signals
         public Func<Vector2Int> onGetGridSize;
         public UnityAction onCheckTheGridToMatch;
         public UnityAction<GridCellHandler> onCheckMatchesFromCell;
-        internal UnityAction<GridCellHandler> onSpawnNewItems;
+        public UnityAction<GridCellHandler> onSpawnNewItems;
         public UnityAction<List<GridCellHandler>, bool> onDestroyMatches;
+        public Func<LevelSaveData> onGetLevelSaveData;
 
         private void Awake()
         {

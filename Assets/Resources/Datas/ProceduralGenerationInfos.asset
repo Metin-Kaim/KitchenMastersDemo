@@ -25,7 +25,9 @@ MonoBehaviour:
     MinHybridBlockSpacing: 0
   - DifficultyType: 1
     UsableGridSizes:
-    - {x: 6, y: 6}
+    - {x: 5, y: 5}
+    - {x: 5, y: 6}
+    - {x: 6, y: 5}
     SpecialItemSpawnPossibility: 15
     BlockSpawnPossibility: 30
     HybridBlockSpawnPossibility: 0
@@ -35,7 +37,7 @@ MonoBehaviour:
     UsableGridSizes:
     - {x: 6, y: 6}
     SpecialItemSpawnPossibility: 15
-    BlockSpawnPossibility: 45
-    HybridBlockSpawnPossibility: 0
+    BlockSpawnPossibility: 60
+    HybridBlockSpawnPossibility: 25
     MinBlockSpacing: 0
-    MinHybridBlockSpacing: 0
+    MinHybridBlockSpacing: 1

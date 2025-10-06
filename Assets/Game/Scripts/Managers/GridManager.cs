@@ -41,6 +41,32 @@ namespace Assets.Game.Scripts.Managers
             GridSignals.Instance.onDestroyMatches += DestroyMatches;
         }
 
+        private LevelSaveData GetLevelSaveData()
+        {
+            List<CellInfo> cellInfos = new List<CellInfo>();
+            for (int x = 0; x < gridSize.x; x++)
+            {
+                for (int y = 0; y < gridSize.y; y++)
+                {
+                    GridCellHandler cell = _gridCells[x, y];
+                    cellInfos.Add(new CellInfo
+                    {
+                        Position = new Vector2Int(x, y),
+                        ItemTypeOfInsideItem = cell.CurrentItem != null ? cell.CurrentItem.ItemType : ItemTypes.None,
+                        IsCheckable = cell.IsCheckable,
+                        IsLocked = cell.IsLocked,
+                    });
+                }
+            }
+
+            return new LevelSaveData()
+            {
+                DifficultyType = difficultyType,
+                GridSize = gridSize,
+                CellInfos = cellInfos,
+            };
+        }
+
         private void OnDisable()
         {
             GridSignals.Instance.onGetGridCells -= GetGridCells;
@@ -50,7 +76,12 @@ namespace Assets.Game.Scripts.Managers
             GridSignals.Instance.onDestroyMatches -= DestroyMatches;
         }
 
-        private void Start() => GenerateGrid();
+        private void Start()
+        {
+            GenerateGrid();
+
+            GameSignals.Instance.onSaveGame?.Invoke(GetLevelSaveData());
+        }
 
         private void Update()
         {
