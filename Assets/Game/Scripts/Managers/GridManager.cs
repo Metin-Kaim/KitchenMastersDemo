@@ -1,4 +1,5 @@
 ﻿using Assets.Game.Scripts.Abstracts;
+using Assets.Game.Scripts.Datas;
 using Assets.Game.Scripts.Handlers;
 using Assets.Game.Scripts.Signals;
 using System.Collections;
@@ -21,8 +22,10 @@ namespace Assets.Game.Scripts.Managers
         [SerializeField] private AbsSpecial[] specialItems;
 
         [Header("Grid Settings")]
-        [SerializeField] private Vector2Int gridSize = new(8, 8);
+        [SerializeField] private Vector2 cellSpacing = new(1f, 1f);
+        [SerializeField] private DifficultyTypes difficultyType;
 
+        private Vector2Int gridSize;
         private GridCellHandler[,] _gridCells;
 
         #endregion
@@ -68,74 +71,270 @@ namespace Assets.Game.Scripts.Managers
 
         private void GenerateGrid()
         {
+            ProceduralGenerationInfos proceduralGenerationInfo = DataSignals.Instance.onGetProceduralGenerationInfosByDifficulty.Invoke(difficultyType);
+
+            gridSize = proceduralGenerationInfo.UsableGridSizes[Random.Range(0, proceduralGenerationInfo.UsableGridSizes.Count)];
+
             _gridCells = new GridCellHandler[gridSize.x, gridSize.y];
+            GenerateCells();
+
+            List<Vector2Int> blockedCellPositions = new();
+            List<Vector2Int> hybridBlockedCellPositions = new();
+
+            float blockSpawnPossibility = proceduralGenerationInfo.BlockSpawnPossibility / 100f;
+            float hybridBlockSpawnPossibility = proceduralGenerationInfo.HybridBlockSpawnPossibility / 100f;
+            float specialItemSpawnPossibility = proceduralGenerationInfo.SpecialItemSpawnPossibility / 100f;
+            byte minBlockSpacing = proceduralGenerationInfo.MinBlockSpacing;
+            byte minHybridBlockSpacing = proceduralGenerationInfo.MinHybridBlockSpacing;
 
             for (int x = 0; x < gridSize.x; x++)
             {
                 for (int y = 0; y < gridSize.y; y++)
                 {
-                    Vector2 position = new(x, y);
-                    GridCellHandler cell = Instantiate(gridCellPrefab, position, Quaternion.identity, gridCellsContainer);
-                    cell.name = $"Cell_{x}_{y}";
-                    cell.GridPosition = new(x, y);
-                    _gridCells[x, y] = cell;
-                }
-            }
+                    GridCellHandler cell = _gridCells[x, y];
 
-            for (int x = 0; x < gridSize.x; x++)
-            {
-                for (int y = 0; y < gridSize.y; y++)
-                {
-                    if ((x == 1 && y == 3) || (x == 3 && y == 2) || (x == 1 && y == 2) || (x == 5 && y == 2))
+                    if (cell.CurrentItem != null) continue;
+
+                    if (Random.value < blockSpawnPossibility)
                     {
-                        int blockIndex = Random.Range(0, hibritBlocks.Length);
-                        AbsBlock block = Instantiate(hibritBlocks[blockIndex], _gridCells[x, y].transform);
-                        block.transform.localPosition = Vector3.zero;
-                        block.name += $"_({x},{y})";
-                        _gridCells[x, y].CurrentItem = block.GetComponent<IItem>();
-                        _gridCells[x, y].IsCheckable = false;
-                        (block as IItem).CurrentCell = _gridCells[x, y];
+                        if (!blockedCellPositions.Any(pos => Mathf.Abs(pos.x - x) <= minBlockSpacing && Mathf.Abs(pos.y - y) <= minBlockSpacing))
+                        {
+                            blockedCellPositions.Add(new Vector2Int(x, y));
+
+                            int hybridIndex = Random.Range(0, blocks.Length);
+                            var block = Instantiate(blocks[hybridIndex], cell.transform);
+                            block.transform.localPosition = Vector3.zero;
+                            block.name += $"_({x},{y})";
+                            cell.CurrentItem = block;
+                            cell.IsCheckable = false;
+                            cell.IsLocked = true;
+                            block.CurrentCell = cell;
+                            continue;
+                        }
                     }
+                    if (Random.value < hybridBlockSpawnPossibility)
+                    {
+                        if (!hybridBlockedCellPositions.Any(pos => Mathf.Abs(pos.x - x) <= minHybridBlockSpacing && Mathf.Abs(pos.y - y) <= minHybridBlockSpacing))
+                        {
+                            hybridBlockedCellPositions.Add(new Vector2Int(x, y));
+
+                            int hybridIndex = Random.Range(0, hibritBlocks.Length);
+                            var hybrid = Instantiate(hibritBlocks[hybridIndex], cell.transform);
+                            hybrid.transform.localPosition = Vector3.zero;
+                            hybrid.name += $"_({x},{y})";
+                            cell.CurrentItem = hybrid;
+                            hybrid.CurrentCell = cell;
+                            cell.IsCheckable = false;
+                            cell.IsLocked = false;
+                            continue;
+                        }
+                    }
+                    if (Random.value < specialItemSpawnPossibility)
+                    {
+                        int specialIndex = Random.Range(0, specialItems.Length);
+                        var special = Instantiate(specialItems[specialIndex], cell.transform);
+                        special.transform.localPosition = Vector3.zero;
+                        special.name += $"_(x, y)";
+                        cell.CurrentItem = special;
+                        special.CurrentCell = cell;
+                        cell.IsCheckable = false;
+                        cell.IsLocked = false;
+                        continue;
+                    }
+
+                    TryPattern(cell);
+
                 }
             }
-
-            for (int y = 0; y < 2; y++)
-            {
-                for (int x = 0; x < gridSize.x; x++)
-                {
-                    int blockIndex = Random.Range(0, blocks.Length);
-                    var block = Instantiate(blocks[blockIndex], _gridCells[x, y].transform);
-                    block.transform.localPosition = Vector3.zero;
-                    block.name += $"_({x},{y})";
-                    _gridCells[x, y].CurrentItem = block.GetComponent<IItem>();
-                    _gridCells[x, y].IsCheckable = false;
-                    _gridCells[x, y].IsLocked = true;
-                    (block as IItem).CurrentCell = _gridCells[x, y];
-                }
-            }
-
-            int specialIndex = Random.Range(0, 1);
-            var special = Instantiate(specialItems[specialIndex], _gridCells[4, 4].transform);
-            special.transform.localPosition = Vector3.zero;
-            special.name += $"_(4,4)";
-            _gridCells[4, 4].CurrentItem = special.GetComponent<IItem>();
-            _gridCells[4, 4].IsCheckable = false;
-            _gridCells[4, 4].IsLocked = false;
-            (special as IItem).CurrentCell = _gridCells[4, 4];
-
-
-            int specialIndex2 = Random.Range(0, 1);
-            var special2 = Instantiate(specialItems[specialIndex2], _gridCells[4,3].transform);
-            special2.transform.localPosition = Vector3.zero;
-            special2.name += $"_[4,3]";
-            _gridCells[4,3].CurrentItem = special2.GetComponent<IItem>();
-            _gridCells[4,3].IsCheckable = false;
-            _gridCells[4,3].IsLocked = false;
-            (special2 as IItem).CurrentCell = _gridCells[4,3];
-
 
             PopulateGridWithCandies();
         }
+
+        public void TryPattern(GridCellHandler cell)
+        {
+            Vector2Int currentPos = cell.GridPosition;
+
+            if (cell.CurrentItem != null)
+                return;
+
+            List<ItemTypes> forbiddenTypes = new(); // ⬅️ Burada listeyi açıyoruz
+
+            List<List<Vector2Int>> allPatterns = new()
+            {
+                new() { new Vector2Int(0, 1), new Vector2Int(0, 3) },
+                new() { new Vector2Int(1, 0), new Vector2Int(3, 0) },
+                new() { new Vector2Int(2, 0), new Vector2Int(1, 1) },
+                new() { new Vector2Int(2, 0), new Vector2Int(1, -1) }
+            };
+
+            allPatterns = allPatterns.OrderBy(_ => Random.value).ToList();
+
+            foreach (var pattern in allPatterns)
+            {
+                forbiddenTypes.Clear();
+
+                if (IsPatternAvailable(pattern, currentPos))
+                {
+                    List<Vector2Int> finalPositions = new() { currentPos };
+                    foreach (var offset in pattern)
+                        finalPositions.Add(offset + currentPos);
+
+                    foreach (var pos in finalPositions)
+                        CheckForbiddenColors(pos, forbiddenTypes); // ⬅️ Listeyi gönderiyoruz
+
+                    if (forbiddenTypes.Count == 4) continue;
+
+                    CreateCandiesOnSpecificCells(finalPositions, forbiddenTypes);
+                    return;
+                }
+            }
+        }
+
+        private void CheckForbiddenColors(Vector2Int currentPos, List<ItemTypes> forbiddenTypes)
+        {
+            // 🔹 1 birimlik çevre kontrolü
+            Vector2Int[] directions =
+            {
+                new(0, 1),   // Yukarı
+                new(0, -1),  // Aşağı
+                new(-1, 0),  // Sol
+                new(1, 0)    // Sağ
+            };
+
+            Dictionary<ItemTypes, int> neighborCounts = new();
+
+            foreach (var dir in directions)
+            {
+                Vector2Int neighborPos = currentPos + dir;
+
+                // Sınır kontrolü
+                if (!IsInsideGrid(neighborPos))
+                    continue;
+
+                var neighborCell = _gridCells[neighborPos.x, neighborPos.y];
+                if (neighborCell?.CurrentItem == null)
+                    continue;
+
+                var type = neighborCell.CurrentItem.ItemType;
+                if (neighborCounts.ContainsKey(type))
+                    neighborCounts[type]++;
+                else
+                    neighborCounts[type] = 1;
+            }
+
+            // 🔹 1 birimlik bölgede 1'den fazla görülen tipleri ekle
+            foreach (var kvp in neighborCounts)
+            {
+                if (kvp.Value > 1 && !forbiddenTypes.Contains(kvp.Key))
+                    forbiddenTypes.Add(kvp.Key);
+            }
+
+            // 🔹 2 birimlik yönlü kontrol (sol1-sol2, sağ1-sağ2, yukarı1-yukarı2, aşağı1-aşağı2)
+            Vector2Int[] mainDirections =
+            {
+                new(1, 0),   // Sağ
+                new(-1, 0),  // Sol
+                new(0, 1),   // Yukarı
+                new(0, -1)   // Aşağı
+            };
+
+            foreach (var dir in mainDirections)
+            {
+                Vector2Int first = currentPos + dir;       // 1 birim
+                Vector2Int second = currentPos + dir * 2;  // 2 birim
+
+                if (!IsInsideGrid(first) || !IsInsideGrid(second))
+                    continue;
+
+                var firstCell = _gridCells[first.x, first.y];
+                var secondCell = _gridCells[second.x, second.y];
+
+                if (firstCell?.CurrentItem == null || secondCell?.CurrentItem == null)
+                    continue;
+
+                var type1 = firstCell.CurrentItem.ItemType;
+                var type2 = secondCell.CurrentItem.ItemType;
+
+                if (type1 == type2 && !forbiddenTypes.Contains(type1))
+                    forbiddenTypes.Add(type1);
+            }
+        }
+
+        // 🔸 Yardımcı fonksiyon
+        private bool IsInsideGrid(Vector2Int pos)
+        {
+            return pos.x >= 0 && pos.y >= 0 && pos.x < gridSize.x && pos.y < gridSize.y;
+        }
+
+        // Pattern uygun mu kontrolü
+        private bool IsPatternAvailable(List<Vector2Int> pattern, Vector2Int origin)
+        {
+            foreach (var offset in pattern)
+            {
+                int nextX = offset.x + origin.x;
+                int nextY = offset.y + origin.y;
+
+                if (nextX < 0 || nextY < 0 || nextX >= gridSize.x || nextY >= gridSize.y)
+                    return false;
+
+                if (_gridCells[nextX, nextY].CurrentItem != null)
+                    return false;
+            }
+
+            return true;
+        }
+        private void CreateCandiesOnSpecificCells(List<Vector2Int> positions, List<ItemTypes> forbiddenTypes)
+        {
+            List<int> ints = new List<int>() { 0, 1, 2, 3 };
+
+            for (int i = 0; i < ints.Count; i++)
+            {
+                int value = ints[i];
+                if (forbiddenTypes.Contains((ItemTypes)value))
+                {
+                    i--;
+                    ints.Remove(value);
+                }
+            }
+
+            int randomIndex = ints[Random.Range(0, ints.Count)];
+
+            for (int i = 0; i < positions.Count; i++)
+            {
+                GridCellHandler selectedCell = _gridCells[positions[i].x, positions[i].y];
+                var candy = Instantiate(candies[randomIndex], selectedCell.transform);
+                candy.transform.localPosition = Vector3.zero;
+                candy.name += $"_({positions[i].x},{positions[i].y})";
+                selectedCell.CurrentItem = candy.GetComponent<IItem>();
+                candy.CurrentCell = selectedCell;
+                selectedCell.IsCheckable = true;
+                selectedCell.IsLocked = false;
+            }
+        }
+        public void GenerateCells()
+        {
+            _gridCells = new GridCellHandler[gridSize.x, gridSize.y];
+
+            Vector2 centerOffset = new Vector2(
+                (gridSize.x - 1) * 0.5f * cellSpacing.x,
+                (gridSize.y - 1) * 0.5f * cellSpacing.y
+            );
+
+            for (int x = 0; x < gridSize.x; x++)
+            {
+                for (int y = 0; y < gridSize.y; y++)
+                {
+                    Vector2 position = new Vector2(x * cellSpacing.x, y * cellSpacing.y) - centerOffset;
+
+                    GridCellHandler cell = Instantiate(gridCellPrefab, position, Quaternion.identity, gridCellsContainer);
+                    cell.name = $"Cell_{x}_{y}";
+                    cell.GridPosition = new Vector2Int(x, y);
+
+                    _gridCells[x, y] = cell;
+                }
+            }
+        }
+
 
         private void PopulateGridWithCandies()
         {
@@ -145,7 +344,24 @@ namespace Assets.Game.Scripts.Managers
                 {
                     if (_gridCells[x, y].CurrentItem != null) continue;
 
-                    int randomIndex = Random.Range(0, candies.Length);
+                    List<ItemTypes> forbiddenTypes = new(); // ⬅️ Burada listeyi açıyoruz
+                    CheckForbiddenColors(new(x, y), forbiddenTypes); // ⬅️ Listeyi gönderiyoruz
+
+                    if (forbiddenTypes.Count == 4) continue;
+
+                    List<int> ints = new List<int>() { 0, 1, 2, 3 };
+
+                    for (int i = 0; i < ints.Count; i++)
+                    {
+                        int value = ints[i];
+                        if (forbiddenTypes.Contains((ItemTypes)value))
+                        {
+                            i--;
+                            ints.Remove(value);
+                        }
+                    }
+                    int randomIndex = ints[Random.Range(0, ints.Count)];
+
                     var candy = Instantiate(candies[randomIndex], _gridCells[x, y].transform);
                     candy.transform.localPosition = Vector3.zero;
                     candy.name += $"_({x},{y})";

@@ -1,8 +1,6 @@
 ﻿using Assets.Game.Scripts.Abstracts;
-using Assets.Game.Scripts.Handlers;
 using Assets.Game.Scripts.Signals;
 using DG.Tweening;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -70,14 +68,6 @@ public class GridCellHandler : MonoBehaviour
                     {
                         blockingCells.Add(neighbourCell);
                     }
-                    //else if(neighbourCell.currentItem is AbsSpecial special)
-                    //{
-                    //    List<GridCellHandler> impactedCells = special.CheckForImpact();
-                    //    if (impactedCells != null)
-                    //    {
-                    //        blockingCells.AddRange(impactedCells);
-                    //    }
-                    //}
                 }
             }
         }
@@ -89,8 +79,8 @@ public class GridCellHandler : MonoBehaviour
     {
         MonoBehaviour cell1Item = (cell1.currentItem as MonoBehaviour);
         cell1Item.transform.SetParent(cell2.transform);
-
-        cell1Item.transform.DOLocalMove(Vector2.zero, 0.2f).SetEase(Ease.InOutFlash).OnComplete(() =>
+        print("Switched combos");
+        cell1Item.transform.DOLocalMove(Vector2.zero, 0.2f).SetEase(Ease.Linear).OnComplete(() =>
         {
             ApplyCombo(cell1, cell2);
         });
@@ -173,10 +163,10 @@ public class GridCellHandler : MonoBehaviour
             // 4 çapraz yön vektörleri
             Vector2Int[] diagonalDirs = new Vector2Int[]
             {
-    new Vector2Int(-1, -1), // sol alt
-    new Vector2Int(-1, +1), // sol üst 
-    new Vector2Int(+1, -1), // sağ alt
-    new Vector2Int(+1, +1)  // sağ üst
+                new Vector2Int(-1, -1), // sol alt
+                new Vector2Int(-1, +1), // sol üst 
+                new Vector2Int(+1, -1), // sağ alt
+                new Vector2Int(+1, +1)  // sağ üst
             };
 
             foreach (var dir in diagonalDirs)
@@ -191,13 +181,13 @@ public class GridCellHandler : MonoBehaviour
                 {
                     GridCellHandler cell = gridCells[checkX, checkY];
 
-                    if (cell == cell1 || cell == cell2)
+                    if (cell == cell1 || cell == cell2 || cell.IsChecked)
                     {
                         checkX += dir.x;
                         checkY += dir.y;
                         continue;
                     }
-                    if (cell.IsChecked) continue;
+
                     CheckTheCellByItemType(destroyingCells, cell);
 
                     // aynı yönde bir sonraki hücreye geç

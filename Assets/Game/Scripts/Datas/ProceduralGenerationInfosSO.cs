@@ -15,9 +15,10 @@ namespace Assets.Game.Scripts.Datas
     {
         public DifficultyTypes DifficultyType;
         public List<Vector2Int> UsableGridSizes;
-        [Range(0, 100), EditorAttributes.Prefix("%")] public byte SpecialItemSpawnPossibility;
+        [Range(0, 100)] public byte SpecialItemSpawnPossibility;
         [Range(0, 100)] public byte BlockSpawnPossibility;
+        [Range(0, 100)] public byte HybridBlockSpawnPossibility;
         [Range(0, 4)] public byte MinBlockSpacing;
-        [Range(1, 5)] public byte MaxStartingMatches;
+        [Range(0, 4)] public byte MinHybridBlockSpacing;
     }
 }

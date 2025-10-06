@@ -9,10 +9,9 @@ namespace Assets.Game.Scripts.Handlers
     {
         public override List<GridCellHandler> GetAllAroundCells()
         {
-            //if(currentCell.IsChecked) return new List<GridCellHandler>();
+            if (currentCell.IsChecked) return new List<GridCellHandler>();
 
             HashSet<GridCellHandler> destroyingCells = new HashSet<GridCellHandler>() { currentCell };
-
             currentCell.IsChecked = true;
 
             GridCellHandler[,] gridCells = GridSignals.Instance.onGetGridCells?.Invoke();
