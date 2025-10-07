@@ -1,0 +1,13 @@
+In this system, the rules for each difficulty level are defined before the game starts using a Scriptable Object structure.
+When the game begins, a random difficulty level is selected, and the level is created based on the rules of that difficulty.
+
+These rules include the grid size, the spawn chances of different game pieces (such as blocks, candies, or special items), and the empty spaces between them.
+Because of these rules, each difficulty level has its own structure, pace, and level of challenge.
+
+During the level generation process, the grid is filled step by step according to these rules.
+However, instead of placing everything completely randomly, the system uses some balance checks.
+For example, to make sure the player does not get stuck at the start, some predefined playable patterns are placed inside the grid.
+This helps the player start the game with possible moves and a playable setup.
+
+As a result, the system creates a new and unique level every time, but always keeps the gameplay fair and consistent.
+This method increases replayability and removes the need for manual level design.
