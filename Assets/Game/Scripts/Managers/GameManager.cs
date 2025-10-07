@@ -26,9 +26,9 @@ namespace Assets.Game.Scripts.Managers
         private void Awake()
         {
             Array array = Enum.GetValues(typeof(DifficultyTypes));
-            DifficultyTypes difficulty = (DifficultyTypes)array.GetValue(UnityEngine.Random.Range(0, array.Length));
+            difficultyType = (DifficultyTypes)array.GetValue(UnityEngine.Random.Range(0, array.Length));
 
-            print("Selected Difficulty Type: " + difficulty);
+            print("Selected Difficulty Type: " + difficultyType);
         }
 
         public void ExecuteLevelAsJSONFormat(LevelSaveData saveData)
