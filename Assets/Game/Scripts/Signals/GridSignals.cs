@@ -17,6 +17,7 @@ namespace Assets.Game.Scripts.Signals
         public UnityAction<GridCellHandler> onSpawnNewItems;
         public UnityAction<List<GridCellHandler>, bool> onDestroyMatches;
         public Func<LevelSaveData> onGetLevelSaveData;
+        internal UnityAction<int> onManuelCollapseColumn;
 
         private void Awake()
         {

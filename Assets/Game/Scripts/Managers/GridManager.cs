@@ -34,6 +34,12 @@ namespace Assets.Game.Scripts.Managers
             GridSignals.Instance.onCheckMatchesFromCell += CheckMatchesFromCell;
             GridSignals.Instance.onSpawnNewItems += OnSpawnNewCandies;
             GridSignals.Instance.onDestroyMatches += DestroyMatches;
+            GridSignals.Instance.onManuelCollapseColumn += OnManuelCollapseColumn;
+        }
+
+        private void OnManuelCollapseColumn(int colIndex)
+        {
+            StartCoroutine(CollapseColumnCoroutine(colIndex));
         }
 
         private LevelSaveData GetLevelSaveData()
@@ -69,6 +75,7 @@ namespace Assets.Game.Scripts.Managers
             GridSignals.Instance.onCheckMatchesFromCell -= CheckMatchesFromCell;
             GridSignals.Instance.onSpawnNewItems -= OnSpawnNewCandies;
             GridSignals.Instance.onDestroyMatches -= DestroyMatches;
+            GridSignals.Instance.onManuelCollapseColumn -= OnManuelCollapseColumn;
         }
 
         private void Start()
@@ -631,6 +638,7 @@ namespace Assets.Game.Scripts.Managers
 
                 foreach (var cell in matchedCells)
                 {
+                    if (cell == null) continue;
                     blockingCells.AddRange(cell.CheckForBlocks(_gridCells));
                 }
 
@@ -668,11 +676,11 @@ namespace Assets.Game.Scripts.Managers
                 if (cell.CurrentItem == null && !cell.IsLocked)
                 {
                     int sourceY = -1;
-                    for (int yy = y + 1; yy < height; yy++)
+                    for (int upperY = y + 1; upperY < height; upperY++)
                     {
-                        if (_gridCells[columnIndex, yy].CurrentItem != null)
+                        if (_gridCells[columnIndex, upperY].CurrentItem != null)
                         {
-                            sourceY = yy;
+                            sourceY = upperY;
                             break;
                         }
                     }
@@ -708,7 +716,27 @@ namespace Assets.Game.Scripts.Managers
                     cells.AddRange(GridSignals.Instance.onCheckMatchesFromCell?.Invoke(c));
             }
 
-            yield return new WaitUntil(() => connectedCells.All(x => (x.CurrentItem as IMovable).IsFalling == false));
+            if (cells.Count == 0) yield break;
+            yield return new WaitUntil(() =>
+            {
+                //if (connectedCells.Any(x => x.CurrentItem == null))
+                //{
+                //    connectedCells = connectedCells.Where(x => x.CurrentItem != null).ToList();
+                //}
+                bool result = true;
+
+                foreach (var cell in connectedCells)
+                {
+                    if (cell.CurrentItem == null) continue;
+                    if ((cell.CurrentItem as IMovable).IsFalling == true)
+                    {
+                        result = false;
+                        break;
+                    }
+                }
+
+                return result;
+            });
             //yield return new WaitForSeconds(0.1f);
 
             //yield return null;

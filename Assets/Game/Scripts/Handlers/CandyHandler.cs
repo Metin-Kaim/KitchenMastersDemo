@@ -2,6 +2,7 @@
 using Assets.Game.Scripts.Signals;
 using DG.Tweening;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 
@@ -54,6 +55,8 @@ namespace Assets.Game.Scripts.Handlers
         {
             SwapTween?.Complete();
 
+            GridCellHandler[,] gridCells = GridSignals.Instance.onGetGridCells.Invoke();
+
             //transform.SetParent(targetCell.transform);
             float distance = Vector2.Distance(transform.localPosition, Vector2.zero);
 
@@ -63,23 +66,39 @@ namespace Assets.Game.Scripts.Handlers
             {
                 distance = Vector2.Distance(transform.localPosition, Vector2.zero);
 
-                //if (TargetCell != targetCell)
-                //{
-                //    targetCell = TargetCell;
-                //    transform.SetParent(targetCell.transform);
-                //}
-
                 transform.localPosition = Vector2.MoveTowards(
                     transform.localPosition,
                     Vector2.zero,
                     fallSpeed * distance * Time.deltaTime
                 );
+
+                if (distance < 0.1f)
+                {
+                    for (int i = -1; i < 2; i += 2)
+                    {
+                        if (currentCell.GridPosition.x + i >= gridCells.GetLength(0) || currentCell.GridPosition.x + i < 0 || currentCell.GridPosition.y - 1 < 0) continue;
+
+                        GridCellHandler crossCell = gridCells[currentCell.GridPosition.x + i, currentCell.GridPosition.y - 1];
+                        if (crossCell.CurrentItem == null)
+                        {
+                            GridCellHandler oldCell = currentCell;
+
+                            crossCell.CurrentItem = this;
+                            currentCell.CurrentItem = null;
+                            currentCell = crossCell;
+                            transform.SetParent(crossCell.transform);
+                            GridSignals.Instance.onManuelCollapseColumn?.Invoke(currentCell.GridPosition.x);
+                            GridSignals.Instance.onManuelCollapseColumn?.Invoke(oldCell.GridPosition.x);
+                            break;
+                        }
+                    }
+                }
+
                 yield return null;
             }
 
             transform.localPosition = Vector2.zero;
 
-            //GridSignals.Instance.onCheckMatchesFromCell?.Invoke(targetCell);
             IsFalling = false;
         }
     }

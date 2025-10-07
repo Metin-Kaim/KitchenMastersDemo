@@ -53,13 +53,15 @@ public class GridCellHandler : MonoBehaviour
                 List<GridCellHandler> matches1 = GridSignals.Instance.onCheckMatchesFromCell?.Invoke(this);
                 List<GridCellHandler> matches2 = GridSignals.Instance.onCheckMatchesFromCell?.Invoke(nextCell);
 
-                if (matches1.Count > 0 || matches2.Count > 0)
+                if (matches1.Count > 0 || matches2.Count > 0 || nextCell.currentItem is AbsSpecial _ || currentItem is AbsSpecial _)
                 {
                     matches1.AddRange(matches2);
 
                     nextMovable.MoveToCell(false);
                     tempCurrentMovable.MoveToCell(false);
-                    StartCoroutine(SwapItems(matches1));
+
+                    if (matches1.Count > 0)
+                        StartCoroutine(SwapItems(matches1));
                 }
                 else
                 {
