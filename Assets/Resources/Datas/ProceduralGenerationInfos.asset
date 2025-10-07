@@ -30,7 +30,7 @@ MonoBehaviour:
     - {x: 6, y: 5}
     SpecialItemSpawnPossibility: 15
     BlockSpawnPossibility: 30
-    HybridBlockSpawnPossibility: 0
+    HybridBlockSpawnPossibility: 20
     MinBlockSpacing: 1
     MinHybridBlockSpacing: 0
   - DifficultyType: 2

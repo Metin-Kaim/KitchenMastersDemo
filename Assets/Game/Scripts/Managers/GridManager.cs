@@ -161,24 +161,14 @@ namespace Assets.Game.Scripts.Managers
         {
             int hybridIndex = Random.Range(0, hibritBlocks.Length);
             var hybrid = Instantiate(hibritBlocks[hybridIndex], cell.transform);
-            hybrid.transform.localPosition = Vector3.zero;
-            hybrid.name += $"_({cell.GridPosition.x},{cell.GridPosition.y})";
-            cell.CurrentItem = hybrid;
-            hybrid.CurrentCell = cell;
-            cell.IsCheckable = false;
-            cell.IsLocked = false;
+            (hybrid as IItem).Init(cell);
         }
 
         private void CreateBlock(GridCellHandler cell)
         {
             int hybridIndex = Random.Range(0, blocks.Length);
             var block = Instantiate(blocks[hybridIndex], cell.transform);
-            block.transform.localPosition = Vector3.zero;
-            block.name += $"_({cell.GridPosition.x},{cell.GridPosition.y})";
-            cell.CurrentItem = block;
-            cell.IsCheckable = false;
-            cell.IsLocked = true;
-            block.CurrentCell = cell;
+            (block as IItem).Init(cell);
         }
 
         public void TryPatternForCandies(GridCellHandler cell)
@@ -329,12 +319,7 @@ namespace Assets.Game.Scripts.Managers
             {
                 GridCellHandler selectedCell = _gridCells[positions[i].x, positions[i].y];
                 var candy = Instantiate(candies[randomIndex], selectedCell.transform);
-                candy.transform.localPosition = Vector3.zero;
-                candy.name += $"_({positions[i].x},{positions[i].y})";
-                selectedCell.CurrentItem = candy.GetComponent<IItem>();
-                candy.CurrentCell = selectedCell;
-                selectedCell.IsCheckable = true;
-                selectedCell.IsLocked = false;
+                (candy as IItem).Init(selectedCell);
             }
         }
 
@@ -411,12 +396,8 @@ namespace Assets.Game.Scripts.Managers
 
                 int randomIndex = Random.Range(0, candies.Length);
                 var candy = Instantiate(candies[randomIndex], cell.transform);
-                candy.transform.localPosition = Vector3.up * (_gridSize.y - y + 1); // yukarıdan düşecek
-                candy.name += $"_({cell.GridPosition.x},{cell.GridPosition.y})";
-                cell.CurrentItem = candy.GetComponent<IItem>();
-                candy.CurrentCell = cell;
-                cell.IsCheckable = true;
-                cell.IsLocked = false;
+                (candy as IItem).Init(cell);
+                candy.transform.localPosition = Vector3.up * (_gridSize.y - y + 1);
 
                 if (candy.TryGetComponent(out IMovable movable))
                     movable.FallToTheCell(cell);
