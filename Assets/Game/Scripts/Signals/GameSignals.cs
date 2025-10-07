@@ -1,4 +1,5 @@
 ﻿using Assets.Game.Scripts.Datas;
+using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.Events;
@@ -10,6 +11,7 @@ namespace Assets.Game.Scripts.Signals
         public static GameSignals Instance;
 
         public UnityAction<LevelSaveData> onSaveGame;
+        public Func<DifficultyTypes> onGetDifficultyType;
 
         private void Awake()
         {

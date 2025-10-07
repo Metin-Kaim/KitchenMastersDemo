@@ -19,6 +19,16 @@ namespace Assets.Game.Scripts.Abstracts
         public ItemTypes ItemType => itemType;
         public GridCellHandler CurrentCell { get => currentCell; set => currentCell = value; }
 
+        public void Init(GridCellHandler cell)
+        {
+            transform.localPosition = Vector3.zero;
+            name += $"_({cell.GridPosition.x},{cell.GridPosition.y})";
+            cell.CurrentItem = this;
+            CurrentCell = cell;
+            cell.IsCheckable = false;
+            cell.IsLocked = false;
+        }
+
         public virtual List<GridCellHandler> GetAllAroundCells()
         {
             HashSet<GridCellHandler> destroyingCells = new HashSet<GridCellHandler>() { currentCell };

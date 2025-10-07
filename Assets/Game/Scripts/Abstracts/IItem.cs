@@ -5,5 +5,7 @@ namespace Assets.Game.Scripts.Abstracts
     {
         ItemTypes ItemType { get; }
         GridCellHandler CurrentCell { get; set; }
+
+        void Init(GridCellHandler cell);
     }
 }

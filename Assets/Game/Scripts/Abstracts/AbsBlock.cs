@@ -16,6 +16,16 @@ namespace Assets.Game.Scripts.Abstracts
         public ItemTypes ItemType => itemType;
         public GridCellHandler CurrentCell { get => currentCell; set => currentCell = value; }
 
+        public virtual void Init(GridCellHandler cell)
+        {
+            transform.localPosition = Vector3.zero;
+            name += $"_({cell.GridPosition.x},{cell.GridPosition.y})";
+            cell.CurrentItem = this;
+            CurrentCell = cell;
+            cell.IsCheckable = false;
+            cell.IsLocked = true;
+        }
+
         internal bool CheckForImpact()
         {
             impactResistance--;

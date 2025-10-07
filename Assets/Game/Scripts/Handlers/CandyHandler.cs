@@ -3,6 +3,7 @@ using Assets.Game.Scripts.Signals;
 using DG.Tweening;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 
@@ -22,6 +23,16 @@ namespace Assets.Game.Scripts.Handlers
         }
         public GridCellHandler TargetCell { get; set; }
         public bool IsFalling { get; set; }
+
+        public void Init(GridCellHandler cell)
+        {
+            transform.localPosition = Vector3.zero;
+            name += $"_({cell.GridPosition.x},{cell.GridPosition.y})";
+            cell.CurrentItem = this;
+            CurrentCell = cell;
+            cell.IsCheckable = true;
+            cell.IsLocked = false;
+        }
 
         public void MoveToCell(bool isReverse)
         {
@@ -50,7 +61,7 @@ namespace Assets.Game.Scripts.Handlers
             IsFalling = true;
             StartCoroutine(Fall());
         }
-
+        
         public IEnumerator Fall()
         {
             SwapTween?.Complete();
@@ -72,7 +83,7 @@ namespace Assets.Game.Scripts.Handlers
                     fallSpeed * distance * Time.deltaTime
                 );
 
-                if (distance < 0.1f)
+                if (distance < 0.05f)
                 {
                     for (int i = -1; i < 2; i += 2)
                     {

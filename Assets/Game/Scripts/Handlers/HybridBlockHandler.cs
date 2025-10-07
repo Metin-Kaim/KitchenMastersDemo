@@ -11,6 +11,17 @@ namespace Assets.Game.Scripts.Handlers
         public GridCellHandler TargetCell { get; set; }
         public bool IsFalling { get; set; }
         public Tweener SwapTween { get; set; }
+
+        public override void Init(GridCellHandler cell)
+        {
+            transform.localPosition = Vector3.zero;
+            name += $"_({cell.GridPosition.x},{cell.GridPosition.y})";
+            cell.CurrentItem = this;
+            CurrentCell = cell;
+            cell.IsCheckable = false;
+            cell.IsLocked = false;
+        }
+
         public void MoveToCell(bool isReverse)
         {
             transform.SetParent(currentCell.transform);

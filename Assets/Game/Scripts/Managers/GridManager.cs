@@ -11,7 +11,6 @@ namespace Assets.Game.Scripts.Managers
 {
     public class GridManager : MonoBehaviour
     {
-
         [Header("Prefabs and Containers")]
         [SerializeField] private GridCellHandler gridCellPrefab;
         [SerializeField] private Transform gridCellsContainer;
@@ -22,9 +21,9 @@ namespace Assets.Game.Scripts.Managers
 
         [Header("Grid Settings")]
         [SerializeField] private Vector2 cellSpacing = new(1f, 1f);
-        [SerializeField] private DifficultyTypes difficultyType;
 
-        private Vector2Int gridSize;
+        private DifficultyTypes _difficultyType;
+        private Vector2Int _gridSize;
         private GridCellHandler[,] _gridCells;
 
         private void OnEnable()
@@ -42,12 +41,31 @@ namespace Assets.Game.Scripts.Managers
             StartCoroutine(CollapseColumnCoroutine(colIndex));
         }
 
+        private void OnDisable()
+        {
+            GridSignals.Instance.onGetGridCells -= GetGridCells;
+            GridSignals.Instance.onGetGridSize -= GetGridSize;
+            GridSignals.Instance.onCheckMatchesFromCell -= CheckMatchesFromCell;
+            GridSignals.Instance.onSpawnNewItems -= OnSpawnNewCandies;
+            GridSignals.Instance.onDestroyMatches -= DestroyMatches;
+            GridSignals.Instance.onManuelCollapseColumn -= OnManuelCollapseColumn;
+        }
+
+        private void Start()
+        {
+            _difficultyType = GameSignals.Instance.onGetDifficultyType.Invoke();
+
+            GenerateGrid();
+
+            GameSignals.Instance.onSaveGame?.Invoke(GetLevelSaveData());
+        }
+
         private LevelSaveData GetLevelSaveData()
         {
             List<CellInfo> cellInfos = new List<CellInfo>();
-            for (int x = 0; x < gridSize.x; x++)
+            for (int x = 0; x < _gridSize.x; x++)
             {
-                for (int y = 0; y < gridSize.y; y++)
+                for (int y = 0; y < _gridSize.y; y++)
                 {
                     GridCellHandler cell = _gridCells[x, y];
                     cellInfos.Add(new CellInfo
@@ -62,39 +80,23 @@ namespace Assets.Game.Scripts.Managers
 
             return new LevelSaveData()
             {
-                DifficultyType = difficultyType,
-                GridSize = gridSize,
+                DifficultyType = _difficultyType,
+                GridSize = _gridSize,
                 CellInfos = cellInfos,
             };
         }
 
-        private void OnDisable()
-        {
-            GridSignals.Instance.onGetGridCells -= GetGridCells;
-            GridSignals.Instance.onGetGridSize -= GetGridSize;
-            GridSignals.Instance.onCheckMatchesFromCell -= CheckMatchesFromCell;
-            GridSignals.Instance.onSpawnNewItems -= OnSpawnNewCandies;
-            GridSignals.Instance.onDestroyMatches -= DestroyMatches;
-            GridSignals.Instance.onManuelCollapseColumn -= OnManuelCollapseColumn;
-        }
-
-        private void Start()
-        {
-            GenerateGrid();
-
-            GameSignals.Instance.onSaveGame?.Invoke(GetLevelSaveData());
-        }
-
         private GridCellHandler[,] GetGridCells() => _gridCells;
-        private Vector2Int GetGridSize() => gridSize;
+
+        private Vector2Int GetGridSize() => _gridSize;
 
         private void GenerateGrid()
         {
-            ProceduralGenerationInfos proceduralGenerationInfo = DataSignals.Instance.onGetProceduralGenerationInfosByDifficulty.Invoke(difficultyType);
+            ProceduralGenerationInfos proceduralGenerationInfo = DataSignals.Instance.onGetProceduralGenerationInfosByDifficulty.Invoke(_difficultyType);
 
-            gridSize = proceduralGenerationInfo.UsableGridSizes[Random.Range(0, proceduralGenerationInfo.UsableGridSizes.Count)];
+            _gridSize = proceduralGenerationInfo.UsableGridSizes[Random.Range(0, proceduralGenerationInfo.UsableGridSizes.Count)];
 
-            _gridCells = new GridCellHandler[gridSize.x, gridSize.y];
+            _gridCells = new GridCellHandler[_gridSize.x, _gridSize.y];
             CreateCells();
 
             List<Vector2Int> blockedCellPositions = new();
@@ -106,9 +108,9 @@ namespace Assets.Game.Scripts.Managers
             byte minBlockSpacing = proceduralGenerationInfo.MinBlockSpacing;
             byte minHybridBlockSpacing = proceduralGenerationInfo.MinHybridBlockSpacing;
 
-            for (int x = 0; x < gridSize.x; x++)
+            for (int x = 0; x < _gridSize.x; x++)
             {
-                for (int y = 0; y < gridSize.y; y++)
+                for (int y = 0; y < _gridSize.y; y++)
                 {
                     GridCellHandler cell = _gridCells[x, y];
 
@@ -120,14 +122,7 @@ namespace Assets.Game.Scripts.Managers
                         {
                             blockedCellPositions.Add(new Vector2Int(x, y));
 
-                            int hybridIndex = Random.Range(0, blocks.Length);
-                            var block = Instantiate(blocks[hybridIndex], cell.transform);
-                            block.transform.localPosition = Vector3.zero;
-                            block.name += $"_({x},{y})";
-                            cell.CurrentItem = block;
-                            cell.IsCheckable = false;
-                            cell.IsLocked = true;
-                            block.CurrentCell = cell;
+                            CreateBlock(cell);
                             continue;
                         }
                     }
@@ -136,39 +131,57 @@ namespace Assets.Game.Scripts.Managers
                         if (!hybridBlockedCellPositions.Any(pos => Mathf.Abs(pos.x - x) <= minHybridBlockSpacing && Mathf.Abs(pos.y - y) <= minHybridBlockSpacing))
                         {
                             hybridBlockedCellPositions.Add(new Vector2Int(x, y));
-
-                            int hybridIndex = Random.Range(0, hibritBlocks.Length);
-                            var hybrid = Instantiate(hibritBlocks[hybridIndex], cell.transform);
-                            hybrid.transform.localPosition = Vector3.zero;
-                            hybrid.name += $"_({x},{y})";
-                            cell.CurrentItem = hybrid;
-                            hybrid.CurrentCell = cell;
-                            cell.IsCheckable = false;
-                            cell.IsLocked = false;
+                            CreateHybridBlock(cell);
                             continue;
                         }
                     }
                     if (Random.value < specialItemSpawnPossibility)
                     {
-                        int specialIndex = Random.Range(0, specialItems.Length);
-                        var special = Instantiate(specialItems[specialIndex], cell.transform);
-                        special.transform.localPosition = Vector3.zero;
-                        special.name += $"_(x, y)";
-                        cell.CurrentItem = special;
-                        special.CurrentCell = cell;
-                        cell.IsCheckable = false;
-                        cell.IsLocked = false;
+                        CreateSpecialItem(cell);
                         continue;
                     }
 
-                    TryPattern(cell);
+                    TryPatternForCandies(cell);
 
                 }
             }
 
             PopulateGridWithCandies();
         }
-        public void TryPattern(GridCellHandler cell)
+
+        private void CreateSpecialItem(GridCellHandler cell)
+        {
+            int specialIndex = Random.Range(0, specialItems.Length);
+            var special = Instantiate(specialItems[specialIndex], cell.transform);
+            (special as IItem).Init(cell);
+
+        }
+
+        private void CreateHybridBlock(GridCellHandler cell)
+        {
+            int hybridIndex = Random.Range(0, hibritBlocks.Length);
+            var hybrid = Instantiate(hibritBlocks[hybridIndex], cell.transform);
+            hybrid.transform.localPosition = Vector3.zero;
+            hybrid.name += $"_({cell.GridPosition.x},{cell.GridPosition.y})";
+            cell.CurrentItem = hybrid;
+            hybrid.CurrentCell = cell;
+            cell.IsCheckable = false;
+            cell.IsLocked = false;
+        }
+
+        private void CreateBlock(GridCellHandler cell)
+        {
+            int hybridIndex = Random.Range(0, blocks.Length);
+            var block = Instantiate(blocks[hybridIndex], cell.transform);
+            block.transform.localPosition = Vector3.zero;
+            block.name += $"_({cell.GridPosition.x},{cell.GridPosition.y})";
+            cell.CurrentItem = block;
+            cell.IsCheckable = false;
+            cell.IsLocked = true;
+            block.CurrentCell = cell;
+        }
+
+        public void TryPatternForCandies(GridCellHandler cell)
         {
             Vector2Int currentPos = cell.GridPosition;
 
@@ -273,9 +286,10 @@ namespace Assets.Game.Scripts.Managers
                     forbiddenTypes.Add(type1);
             }
         }
+
         private bool IsInsideGrid(Vector2Int pos)
         {
-            return pos.x >= 0 && pos.y >= 0 && pos.x < gridSize.x && pos.y < gridSize.y;
+            return pos.x >= 0 && pos.y >= 0 && pos.x < _gridSize.x && pos.y < _gridSize.y;
         }
 
         private bool IsPatternAvailable(List<Vector2Int> pattern, Vector2Int origin)
@@ -285,7 +299,7 @@ namespace Assets.Game.Scripts.Managers
                 int nextX = offset.x + origin.x;
                 int nextY = offset.y + origin.y;
 
-                if (nextX < 0 || nextY < 0 || nextX >= gridSize.x || nextY >= gridSize.y)
+                if (nextX < 0 || nextY < 0 || nextX >= _gridSize.x || nextY >= _gridSize.y)
                     return false;
 
                 if (_gridCells[nextX, nextY].CurrentItem != null)
@@ -294,6 +308,7 @@ namespace Assets.Game.Scripts.Managers
 
             return true;
         }
+
         private void CreateCandiesOnSpecificCells(List<Vector2Int> positions, List<ItemTypes> forbiddenTypes)
         {
             List<int> ints = new List<int>() { 0, 1, 2, 3 };
@@ -322,18 +337,19 @@ namespace Assets.Game.Scripts.Managers
                 selectedCell.IsLocked = false;
             }
         }
+
         public void CreateCells()
         {
-            _gridCells = new GridCellHandler[gridSize.x, gridSize.y];
+            _gridCells = new GridCellHandler[_gridSize.x, _gridSize.y];
 
             Vector2 centerOffset = new Vector2(
-                (gridSize.x - 1) * 0.5f * cellSpacing.x,
-                (gridSize.y - 1) * 0.5f * cellSpacing.y
+                (_gridSize.x - 1) * 0.5f * cellSpacing.x,
+                (_gridSize.y - 1) * 0.5f * cellSpacing.y
             );
 
-            for (int x = 0; x < gridSize.x; x++)
+            for (int x = 0; x < _gridSize.x; x++)
             {
-                for (int y = 0; y < gridSize.y; y++)
+                for (int y = 0; y < _gridSize.y; y++)
                 {
                     Vector2 position = new Vector2(x * cellSpacing.x, y * cellSpacing.y) - centerOffset;
 
@@ -345,11 +361,12 @@ namespace Assets.Game.Scripts.Managers
                 }
             }
         }
+
         private void PopulateGridWithCandies()
         {
-            for (int x = 0; x < gridSize.x; x++)
+            for (int x = 0; x < _gridSize.x; x++)
             {
-                for (int y = 0; y < gridSize.y; y++)
+                for (int y = 0; y < _gridSize.y; y++)
                 {
                     if (_gridCells[x, y].CurrentItem != null) continue;
 
@@ -387,14 +404,14 @@ namespace Assets.Game.Scripts.Managers
             int column = emptyCell.GridPosition.x;
             int startY = emptyCell.GridPosition.y;
 
-            for (int y = startY; y < gridSize.y; y++)
+            for (int y = startY; y < _gridSize.y; y++)
             {
                 var cell = _gridCells[column, y];
                 if (cell.CurrentItem != null) continue;
 
                 int randomIndex = Random.Range(0, candies.Length);
                 var candy = Instantiate(candies[randomIndex], cell.transform);
-                candy.transform.localPosition = Vector3.up * (gridSize.y - y + 1); // yukarıdan düşecek
+                candy.transform.localPosition = Vector3.up * (_gridSize.y - y + 1); // yukarıdan düşecek
                 candy.name += $"_({cell.GridPosition.x},{cell.GridPosition.y})";
                 cell.CurrentItem = candy.GetComponent<IItem>();
                 candy.CurrentCell = cell;
@@ -454,7 +471,6 @@ namespace Assets.Game.Scripts.Managers
                     return cells;
                 else return new();
             }
-
         }
 
         private List<GridCellHandler> CheckFive(GridCellHandler cell, List<GridCellHandler> neighbors)
@@ -609,7 +625,7 @@ namespace Assets.Game.Scripts.Managers
                     int nx = cell.GridPosition.x + dirs[i, 0];
                     int ny = cell.GridPosition.y + dirs[i, 1];
 
-                    if (nx >= 0 && nx < gridSize.x && ny >= 0 && ny < gridSize.y)
+                    if (nx >= 0 && nx < _gridSize.x && ny >= 0 && ny < _gridSize.y)
                     {
                         var neighbor = _gridCells[nx, ny];
                         if (neighbor != null && !neighbor.IsChecked &&
@@ -665,7 +681,7 @@ namespace Assets.Game.Scripts.Managers
 
         private IEnumerator CollapseColumnCoroutine(int columnIndex)
         {
-            int height = gridSize.y;
+            int height = _gridSize.y;
 
             List<GridCellHandler> connectedCells = new();
 
@@ -703,7 +719,6 @@ namespace Assets.Game.Scripts.Managers
                         OnSpawnNewCandies(cell);
                     }
                     connectedCells.Add(cell);
-                    //yield return new WaitForSeconds(0.05f);
                 }
             }
 
@@ -719,10 +734,6 @@ namespace Assets.Game.Scripts.Managers
             if (cells.Count == 0) yield break;
             yield return new WaitUntil(() =>
             {
-                //if (connectedCells.Any(x => x.CurrentItem == null))
-                //{
-                //    connectedCells = connectedCells.Where(x => x.CurrentItem != null).ToList();
-                //}
                 bool result = true;
 
                 foreach (var cell in connectedCells)
@@ -737,9 +748,7 @@ namespace Assets.Game.Scripts.Managers
 
                 return result;
             });
-            //yield return new WaitForSeconds(0.1f);
 
-            //yield return null;
             GridSignals.Instance.onDestroyMatches?.Invoke(cells, true);
         }
     }
